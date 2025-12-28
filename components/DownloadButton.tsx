@@ -19,7 +19,7 @@ const DOWNLOAD_SIZES: DownloadSize[] = [
 ];
 
 interface DownloadButtonProps {
-  slideRef: React.RefObject<HTMLDivElement>;
+  slideRef: React.RefObject<HTMLDivElement | null>;
   slideName: string;
   onDownload?: (format: "phone" | "tab" | "desktop") => Promise<void>;
 }

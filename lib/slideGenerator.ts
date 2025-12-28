@@ -221,7 +221,7 @@ export function generateFavoriteRepoSlideHTML(
 }
 
 export function generateAIToolsSlideHTML(
-  tools: string[],
+  tools: { name: string; count: number }[],
   config: SlideGeneratorConfig
 ): string {
   const styles = getResponsiveStyles(config.format);
@@ -246,7 +246,7 @@ export function generateAIToolsSlideHTML(
         <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 600px;">
           ${tools.map(tool => `
             <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 24px; padding: 12px 24px;">
-              <span style="font-size: ${styles.fontSize}; color: #1DB954; font-weight: 600;">${tool}</span>
+              <span style="font-size: ${styles.fontSize}; color: #1DB954; font-weight: 600;">${tool.name}</span>
             </div>
           `).join('')}
         </div>

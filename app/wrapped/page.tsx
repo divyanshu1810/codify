@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type ReactElement } from "react";
 import { AnimatePresence } from "framer-motion";
 import { FaChevronLeft, FaChevronRight, FaSignOutAlt } from "react-icons/fa";
 import { IntroSlide } from "@/components/slides/IntroSlide";
@@ -283,7 +283,7 @@ export default function WrappedPage() {
   };
 
   interface SlideConfig {
-    component: JSX.Element;
+    component: ReactElement;
     name: string;
   }
 
