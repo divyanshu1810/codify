@@ -23,11 +23,13 @@ export function Footer({ currentYear }: FooterProps) {
           rel="noopener noreferrer"
           className="text-[#1DB954] hover:text-[#1ed760] transition-colors font-semibold"
         >
-          devyansh1810
+          divyanshu1810
         </a>
       </p>
       <p>Built with Next.js, TypeScript, and Framer Motion</p>
-      <p className="mt-2">© {currentYear} Codify Wrapped. All rights reserved.</p>
+      <p className="mt-2">
+        © {currentYear} Codify Wrapped. All rights reserved.
+      </p>
     </motion.div>
   );
 }
