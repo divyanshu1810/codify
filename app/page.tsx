@@ -26,7 +26,19 @@ export default function Home() {
       title: "Comprehensive Analytics",
       description: "Deep dive into your commits, PRs, issues, and code contributions with beautiful visualizations.",
       header: (
-        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-[#1DB954]/20 to-transparent border border-[#1DB954]/20" />
+        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-[#1DB954]/20 to-transparent border border-[#1DB954]/20 items-center justify-center p-4">
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              transition={{ duration: 0.5, type: "spring" }}
+              className="text-4xl font-bold text-[#1DB954]"
+            >
+              1,247
+            </motion.div>
+            <div className="text-xs text-[#B3B3B3] mt-1">Total Commits</div>
+          </div>
+        </div>
       ),
     },
     {
@@ -34,7 +46,19 @@ export default function Home() {
       title: "Developer Achievements",
       description: "Earn unique nicknames and titles based on your coding patterns and contributions.",
       header: (
-        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-yellow-500/20 to-transparent border border-yellow-500/20" />
+        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-yellow-500/20 to-transparent border border-yellow-500/20 items-center justify-center p-4">
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              transition={{ duration: 0.5, type: "spring", delay: 0.1 }}
+              className="text-3xl font-bold text-yellow-400"
+            >
+              🏆 Code Machine
+            </motion.div>
+            <div className="text-xs text-[#B3B3B3] mt-1">Your Title</div>
+          </div>
+        </div>
       ),
     },
     {
@@ -42,7 +66,26 @@ export default function Home() {
       title: "AI Tool Detection",
       description: "Discover which AI coding assistants you've been using throughout the year.",
       header: (
-        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-purple-500/20 to-transparent border border-purple-500/20" />
+        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-purple-500/20 to-transparent border border-purple-500/20 items-center justify-center p-4">
+          <div className="flex gap-2">
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-purple-500/30 px-3 py-1 rounded-full text-xs text-purple-300 font-semibold"
+            >
+              Copilot
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="bg-purple-500/30 px-3 py-1 rounded-full text-xs text-purple-300 font-semibold"
+            >
+              Claude
+            </motion.div>
+          </div>
+        </div>
       ),
     },
     {
@@ -50,7 +93,32 @@ export default function Home() {
       title: "Streak Tracking",
       description: "Monitor your longest coding streaks and consistency throughout the year.",
       header: (
-        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-orange-500/20 to-transparent border border-orange-500/20" />
+        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-orange-500/20 to-transparent border border-orange-500/20 items-center justify-center p-4">
+          <div className="flex items-center gap-8">
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.5, type: "spring", delay: 0.2 }}
+                className="text-4xl font-bold text-orange-400"
+              >
+                45
+              </motion.div>
+              <div className="text-xs text-[#B3B3B3] mt-1">Day Streak 🔥</div>
+            </div>
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.5, type: "spring", delay: 0.3 }}
+                className="text-4xl font-bold text-orange-400"
+              >
+                Wed
+              </motion.div>
+              <div className="text-xs text-[#B3B3B3] mt-1">Best Day</div>
+            </div>
+          </div>
+        </div>
       ),
       className: "md:col-span-2",
     },
@@ -59,7 +127,19 @@ export default function Home() {
       title: "Productivity Patterns",
       description: "Find out your most productive hours and days of the week.",
       header: (
-        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-blue-500/20 to-transparent border border-blue-500/20" />
+        <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-blue-500/20 to-transparent border border-blue-500/20 items-center justify-center p-4">
+          <div className="text-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              transition={{ duration: 0.5, type: "spring", delay: 0.4 }}
+              className="text-4xl font-bold text-blue-400"
+            >
+              23:00
+            </motion.div>
+            <div className="text-xs text-[#B3B3B3] mt-1">Peak Hour ⏰</div>
+          </div>
+        </div>
       ),
     },
   ];
@@ -223,9 +303,20 @@ export default function Home() {
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center py-12 px-4 text-[#B3B3B3] text-sm"
+          className="text-center py-12 px-4 text-[#B3B3B3] text-sm space-y-2"
         >
-          <p>Made with 💚 using Next.js, TypeScript, and Framer Motion</p>
+          <p>
+            Made with ❤️ by{" "}
+            <a
+              href="https://github.com/divyanshu1810"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#1DB954] hover:text-[#1ed760] transition-colors font-semibold"
+            >
+              devyansh1810
+            </a>
+          </p>
+          <p>Built with Next.js, TypeScript, and Framer Motion</p>
           <p className="mt-2">© {currentYear} Codify Wrapped. All rights reserved.</p>
         </motion.div>
       </div>

@@ -1,0 +1,7 @@
+# robots.txt for Codify Wrapped
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://codify-wrapped.vercel.app/sitemap.xml

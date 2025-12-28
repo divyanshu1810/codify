@@ -180,10 +180,43 @@ Edit the color variables in `app/globals.css`:
 
 ### Deploy to Vercel
 
-1. Push your code to GitHub
-2. Import the project to [Vercel](https://vercel.com)
-3. Add environment variables in Vercel dashboard
-4. Update your GitHub OAuth App callback URL to your production URL
+The app is currently deployed at: [https://codify-wrapped.vercel.app](https://codify-wrapped.vercel.app)
+
+#### Steps to Deploy:
+
+1. **Push your code to GitHub**
+
+2. **Create a new GitHub OAuth App for production**:
+   - Go to [GitHub Developer Settings](https://github.com/settings/developers)
+   - Click "New OAuth App"
+   - Fill in the details:
+     - **Application name**: Codify Wrapped (Production)
+     - **Homepage URL**: `https://codify-wrapped.vercel.app`
+     - **Authorization callback URL**: `https://codify-wrapped.vercel.app/api/auth/callback/github`
+   - Save the Client ID and Client Secret
+
+3. **Import to Vercel**:
+   - Go to [Vercel](https://vercel.com)
+   - Import your GitHub repository
+   - Configure project settings (Framework Preset: Next.js)
+
+4. **Add Environment Variables in Vercel**:
+   Go to Project Settings → Environment Variables and add:
+   ```
+   GITHUB_ID=your_production_github_client_id
+   GITHUB_SECRET=your_production_github_client_secret
+   NEXTAUTH_URL=https://codify-wrapped.vercel.app
+   NEXTAUTH_SECRET=your_generated_secret
+   ```
+   Generate NEXTAUTH_SECRET with: `openssl rand -base64 32`
+
+5. **Deploy**: Click "Deploy" and wait for the build to complete
+
+#### Important Notes:
+- Keep separate OAuth Apps for development and production
+- Never commit `.env.local` to version control
+- Make sure to update the OG image URL in production if needed
+- The app uses `/og-image.png` for social media previews
 
 ## Known Limitations
 

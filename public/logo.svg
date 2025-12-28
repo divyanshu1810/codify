@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#000000"/>
+
+  <!-- Glow Effect -->
+  <circle cx="256" cy="256" r="220" fill="url(#glow)" opacity="0.3"/>
+
+  <!-- Code Brackets -->
+  <path d="M180 160 L140 256 L180 352" stroke="#1DB954" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M332 160 L372 256 L332 352" stroke="#1DB954" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Center Slash -->
+  <path d="M280 140 L232 372" stroke="#1ed760" stroke-width="24" stroke-linecap="round"/>
+
+  <!-- Accent Dots -->
+  <circle cx="256" cy="256" r="12" fill="#1DB954"/>
+  <circle cx="220" cy="220" r="6" fill="#1ed760" opacity="0.6"/>
+  <circle cx="292" cy="292" r="6" fill="#1ed760" opacity="0.6"/>
+
+  <!-- Gradient Definition -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1DB954" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#1DB954" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
