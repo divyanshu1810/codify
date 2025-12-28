@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
+  --spotify-green: #1DB954;
+  --spotify-dark: #121212;
+  --spotify-darker: #000000;
+  --spotify-light-gray: #B3B3B3;
+  --spotify-white: #FFFFFF;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-spotify-green: var(--spotify-green);
+  --color-spotify-dark: var(--spotify-dark);
+  --color-spotify-darker: var(--spotify-darker);
+  --color-spotify-light-gray: var(--spotify-light-gray);
+  --color-spotify-white: var(--spotify-white);
+  --font-sans: var(--font-jetbrains-mono);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-jetbrains-mono), 'SF Mono', 'Monaco', 'Fira Code', 'Courier New', monospace;
+  margin: 0;
+  padding: 0;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains-mono), 'SF Mono', 'Monaco', 'Fira Code', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-weight: 500;
 }

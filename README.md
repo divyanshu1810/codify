@@ -1,36 +1,210 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Codify - Your GitHub Year Wrapped
 
-## Getting Started
+A beautiful, Spotify-inspired web application that showcases your GitHub activity and achievements throughout the year. Built with Next.js, TypeScript, Tailwind CSS, and Framer Motion.
 
-First, run the development server:
+## Features
+
+- GitHub OAuth authentication
+- Comprehensive GitHub statistics:
+  - Total commits, pull requests, and issues resolved
+  - Lines of code written (added/deleted/net)
+  - Code review statistics
+  - Favorite repository
+  - AI tools detection in commit messages
+  - Productivity patterns (streak, most productive day/hour)
+- Personalized nicknames based on your coding patterns
+- Spotify-themed UI with smooth animations
+- Interactive slide navigation with keyboard support
+- Social media sharing capabilities
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Authentication**: NextAuth.js
+- **Animations**: Framer Motion
+- **Icons**: React Icons
+- **GitHub API**: Octokit
+
+## Prerequisites
+
+Before you begin, ensure you have:
+- Node.js 18+ installed
+- A GitHub account
+- A GitHub OAuth App (instructions below)
+
+## Setup Instructions
+
+### 1. Clone and Install
+
+```bash
+cd codify
+npm install
+```
+
+### 2. Create a GitHub OAuth App
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the details:
+   - **Application name**: Codify (or your preferred name)
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+4. Click "Register application"
+5. Copy your **Client ID**
+6. Generate a new **Client Secret** and copy it
+
+### 3. Configure Environment Variables
+
+Copy the `.env.example` file to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` and fill in your credentials:
+
+```env
+GITHUB_ID=your_github_client_id
+GITHUB_SECRET=your_github_client_secret
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_here
+```
+
+To generate a NEXTAUTH_SECRET, run:
+```bash
+openssl rand -base64 32
+```
+
+### 4. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Click "Sign in with GitHub" on the home page
+2. Authorize the application
+3. Wait for your stats to load
+4. Navigate through the slides using:
+   - Arrow buttons at the bottom
+   - Keyboard arrow keys (left/right)
+   - Slide indicators (dots)
+5. Share your wrapped on social media!
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+codify/
+├── app/
+│   ├── api/
+│   │   ├── auth/[...nextauth]/   # NextAuth API route
+│   │   └── wrapped/              # Wrapped data API
+│   ├── wrapped/                  # Wrapped page
+│   ├── globals.css              # Global styles with Spotify theme
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   └── providers.tsx            # Session provider
+├── components/
+│   ├── slides/                  # Individual slide components
+│   │   ├── IntroSlide.tsx
+│   │   ├── StatsSlide.tsx
+│   │   ├── LinesOfCodeSlide.tsx
+│   │   ├── NicknameSlide.tsx
+│   │   ├── FavoriteRepoSlide.tsx
+│   │   ├── AIToolsSlide.tsx
+│   │   ├── ProductivitySlide.tsx
+│   │   └── OutroSlide.tsx
+│   └── Slide.tsx               # Base slide component
+├── lib/
+│   ├── auth.ts                 # NextAuth configuration
+│   ├── github.ts               # GitHub API service
+│   └── nicknames.ts            # Nickname generation logic
+└── types/
+    └── next-auth.d.ts          # NextAuth type definitions
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features Breakdown
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Statistics Tracked
 
-## Deploy on Vercel
+- **Commits**: Total commits made in the year
+- **Pull Requests**: Number of PRs merged
+- **Issues**: Number of issues resolved
+- **Lines of Code**: Added, deleted, and net change
+- **Code Reviews**: Estimated lines of code reviewed
+- **Favorite Repository**: Repo with most commits
+- **AI Tools**: Detected AI tools in commit messages (Copilot, ChatGPT, Claude, etc.)
+- **Productivity**: Longest streak, most productive day, and peak coding hour
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Nicknames
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app assigns you a nickname based on your activity:
+- **Night Owl**: Code mostly at night
+- **Early Bird**: Active in early morning
+- **Code Machine**: 500+ commits
+- **PR Champion**: 50+ PRs merged
+- **Bug Slayer**: 30+ issues resolved
+- **Line Warrior**: 10k+ lines added
+- **Delete Master**: Delete more than you write
+- **Review King**: 5k+ lines reviewed
+- **Streak Master**: 30+ day streak
+- And more!
+
+## Customization
+
+### Changing the Year
+
+The app defaults to the current year. To change it, modify the year parameter in the API call.
+
+### Adding More Slides
+
+1. Create a new component in `components/slides/`
+2. Import and add it to the slides array in `app/wrapped/page.tsx`
+
+### Modifying Spotify Colors
+
+Edit the color variables in `app/globals.css`:
+
+```css
+--spotify-green: #1DB954;
+--spotify-dark: #121212;
+--spotify-darker: #000000;
+```
+
+## Deployment
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Import the project to [Vercel](https://vercel.com)
+3. Add environment variables in Vercel dashboard
+4. Update your GitHub OAuth App callback URL to your production URL
+
+## Known Limitations
+
+- GitHub API rate limits apply (5000 requests/hour for authenticated users)
+- Some statistics are estimates (e.g., lines of code, reviewed lines)
+- Follower growth tracking requires historical data (currently shows total followers)
+- The app uses GitHub Search API which has some limitations on date ranges
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License - feel free to use this project for your own purposes.
+
+## Acknowledgments
+
+- Inspired by Spotify Wrapped
+- Built with Next.js and the amazing open-source community
+
+## Support
+
+If you encounter any issues or have questions, please open an issue on GitHub.
