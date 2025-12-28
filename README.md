@@ -96,38 +96,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
    - Slide indicators (dots)
 5. Share your wrapped on social media!
 
-## Project Structure
-
-```
-codify/
-├── app/
-│   ├── api/
-│   │   ├── auth/[...nextauth]/   # NextAuth API route
-│   │   └── wrapped/              # Wrapped data API
-│   ├── wrapped/                  # Wrapped page
-│   ├── globals.css              # Global styles with Spotify theme
-│   ├── layout.tsx               # Root layout
-│   ├── page.tsx                 # Home page
-│   └── providers.tsx            # Session provider
-├── components/
-│   ├── slides/                  # Individual slide components
-│   │   ├── IntroSlide.tsx
-│   │   ├── StatsSlide.tsx
-│   │   ├── LinesOfCodeSlide.tsx
-│   │   ├── NicknameSlide.tsx
-│   │   ├── FavoriteRepoSlide.tsx
-│   │   ├── AIToolsSlide.tsx
-│   │   ├── ProductivitySlide.tsx
-│   │   └── OutroSlide.tsx
-│   └── Slide.tsx               # Base slide component
-├── lib/
-│   ├── auth.ts                 # NextAuth configuration
-│   ├── github.ts               # GitHub API service
-│   └── nicknames.ts            # Nickname generation logic
-└── types/
-    └── next-auth.d.ts          # NextAuth type definitions
-```
-
 ## Features Breakdown
 
 ### Statistics Tracked
@@ -231,7 +199,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License - feel free to use this project for your own purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
