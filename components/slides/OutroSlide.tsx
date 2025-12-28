@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FaHeart, FaTwitter, FaLinkedin, FaGithub, FaDownload } from "react-icons/fa";
+import { FaHeart, FaTwitter, FaLinkedin, FaGithub, FaDownload, FaCheck } from "react-icons/fa";
 import { Slide } from "../Slide";
 import { useState } from "react";
 
@@ -164,9 +164,10 @@ export function OutroSlide({ username, year, funFact, onDownloadAll, isDownloadi
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-black text-[#1DB954] px-4 py-2 rounded-full font-semibold text-sm"
+              className="bg-black text-[#1DB954] px-4 py-2 rounded-full font-semibold text-sm flex items-center gap-2 justify-center"
             >
-              ✓ Text copied! Paste it on LinkedIn
+              <FaCheck className="text-sm" />
+              <span>Text copied! Paste it on LinkedIn</span>
             </motion.div>
           )}
 

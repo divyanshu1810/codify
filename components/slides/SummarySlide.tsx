@@ -38,7 +38,7 @@ export function SummarySlide({ stats, nickname, username, year }: SummarySlidePr
 
   return (
     <Slide className="bg-gradient-to-br from-[#121212] via-black to-[#1a1a1a]">
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 py-8 sm:py-12 md:py-16">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

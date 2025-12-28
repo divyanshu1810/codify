@@ -3,8 +3,8 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, type ReactElement } from "react";
-import { AnimatePresence } from "framer-motion";
-import { FaChevronLeft, FaChevronRight, FaSignOutAlt } from "react-icons/fa";
+import { AnimatePresence, motion } from "framer-motion";
+import { FaChevronLeft, FaChevronRight, FaSignOutAlt, FaShare, FaSync, FaCalendarAlt, FaChevronDown } from "react-icons/fa";
 import { IntroSlide } from "@/components/slides/IntroSlide";
 import { StatsSlide } from "@/components/slides/StatsSlide";
 import { LinesOfCodeSlide } from "@/components/slides/LinesOfCodeSlide";
@@ -12,11 +12,17 @@ import { NicknameSlide } from "@/components/slides/NicknameSlide";
 import { FavoriteRepoSlide } from "@/components/slides/FavoriteRepoSlide";
 import { AIToolsSlide } from "@/components/slides/AIToolsSlide";
 import { ProductivitySlide } from "@/components/slides/ProductivitySlide";
+import { LanguagesSlide } from "@/components/slides/LanguagesSlide";
+import { BadgesSlide } from "@/components/slides/BadgesSlide";
 import { SummarySlide } from "@/components/slides/SummarySlide";
 import { OutroSlide } from "@/components/slides/OutroSlide";
 import { DownloadButton } from "@/components/DownloadButton";
+import { ShareDialog } from "@/components/ShareDialog";
+import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { GitHubStats } from "@/lib/github";
 import { generateNickname, generateFunFact } from "@/lib/nicknames";
+import { getEarnedBadges } from "@/lib/badges";
+import { getCachedStats, setCachedStats, getCacheAge, formatCacheAge } from "@/lib/cache";
 import {
   generateIntroSlideHTML,
   generateStatsSlideHTML,
@@ -25,82 +31,232 @@ import {
   generateFavoriteRepoSlideHTML,
   generateAIToolsSlideHTML,
   generateProductivitySlideHTML,
+  generateLanguagesSlideHTML,
   generateSummarySlideHTML,
 } from "@/lib/slideGenerator";
 import { convertHTMLToImage } from "@/lib/htmlToImage";
 
+const SWIPE_THRESHOLD = 50;
+const DOWNLOAD_DELAY = 300;
+const DIMENSIONS = {
+  phone: { width: 1170, height: 2532 },
+  tab: { width: 1640, height: 2360 },
+  desktop: { width: 1920, height: 1080 },
+};
+
+interface SlideConfig {
+  component: ReactElement;
+  name: string;
+}
+
+type DownloadFormat = "phone" | "tab" | "desktop";
+
 export default function WrappedPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const slideRef = useRef<HTMLDivElement>(null);
+  const yearDropdownRef = useRef<HTMLDivElement>(null);
+
   const [stats, setStats] = useState<GitHubStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
-  const slideRef = useRef<HTMLDivElement>(null);
-  const year = new Date().getFullYear();
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [cacheAge, setCacheAge] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [accountCreationYear, setAccountCreationYear] = useState<number | null>(null);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = accountCreationYear
+    ? Array.from({ length: currentYear - accountCreationYear + 1 }, (_, i) => currentYear - i)
+    : Array.from({ length: 6 }, (_, i) => currentYear - i);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/");
-    }
+    if (status === "unauthenticated") router.push("/");
   }, [status, router]);
 
   useEffect(() => {
     if (status === "authenticated") {
       fetchWrappedData();
     }
+  }, [status, selectedYear]);
+
+  useEffect(() => {
+    if (status === "authenticated" && !accountCreationYear) {
+      fetchAccountCreationYear();
+    }
   }, [status]);
 
-  const fetchWrappedData = async () => {
+  const fetchAccountCreationYear = async () => {
+    try {
+      const response = await fetch("/api/account");
+      if (response.ok) {
+        const data = await response.json();
+        setAccountCreationYear(data.creationYear);
+      }
+    } catch (error) {
+      console.error("Error fetching account creation year:", error);
+    }
+  };
+
+  const fetchWrappedData = async (forceRefresh = false) => {
+    const username = session?.username;
+    if (!username) return;
+
     try {
       setLoading(true);
-      const response = await fetch(`/api/wrapped?year=${year}`);
+      setError(null);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch wrapped data");
+      if (!forceRefresh) {
+        const cachedStats = getCachedStats(username, selectedYear);
+        if (cachedStats) {
+          setStats(cachedStats);
+          setCacheAge(getCacheAge(username, selectedYear));
+          setLoading(false);
+          return;
+        }
       }
+
+      const response = await fetch(`/api/wrapped?year=${selectedYear}`);
+      if (!response.ok) throw new Error("Failed to fetch wrapped data");
 
       const data = await response.json();
       setStats(data);
+      setCachedStats(username, selectedYear, data);
+      setCacheAge(0);
+      setCurrentSlide(0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") {
-        nextSlide();
-      } else if (e.key === "ArrowLeft") {
-        prevSlide();
-      }
-    };
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchWrappedData(true);
+  };
 
+  const handleKeyPress = (e: KeyboardEvent) => {
+    if (e.key === "ArrowRight") nextSlide();
+    else if (e.key === "ArrowLeft") prevSlide();
+  };
+
+  useEffect(() => {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [currentSlide, stats]);
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#1DB954] mx-auto"></div>
-          <p className="text-white text-xl font-mono">Loading your wrapped...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+        setShowYearDropdown(false);
+      }
+    };
+
+    if (showYearDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showYearDropdown]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > SWIPE_THRESHOLD;
+    const isRightSwipe = distance < -SWIPE_THRESHOLD;
+
+    if (isLeftSwipe) nextSlide();
+    else if (isRightSwipe) prevSlide();
+  };
+
+  const generateSlideHTML = (slideName: string, config: any, username: string, nickname: any) => {
+    if (!stats) return "";
+
+    const generators: Record<string, () => string> = {
+      intro: () => generateIntroSlideHTML(username, selectedYear, config),
+      stats: () => generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config),
+      "lines-of-code": () => generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config),
+      nickname: () => generateNicknameSlideHTML(nickname.title, nickname.description, config),
+      "favorite-repo": () => stats.favoriteRepo ? generateFavoriteRepoSlideHTML(stats.favoriteRepo.name, stats.favoriteRepo.stars, stats.favoriteRepo.commits, config) : "",
+      "ai-tools": () => generateAIToolsSlideHTML(stats.aiToolsUsed, config),
+      productivity: () => generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config),
+      languages: () => generateLanguagesSlideHTML(stats.topLanguages, config),
+      summary: () => generateSummarySlideHTML(stats, nickname, username, selectedYear, config),
+    };
+
+    return generators[slideName]?.() || "";
+  };
+
+  const downloadCurrentSlide = async (format: DownloadFormat) => {
+    if (!stats) return;
+
+    const config = { format, ...DIMENSIONS[format] };
+    const username = session?.username || "Developer";
+    const nickname = generateNickname(stats);
+    const slideName = slideConfigs[currentSlide].name;
+
+    const html = generateSlideHTML(slideName, config, username, nickname);
+    if (html) await convertHTMLToImage(html, `codify-wrapped-${slideName}-${format}.png`);
+  };
+
+  const downloadAllSlides = async (format: DownloadFormat) => {
+    if (!stats) return;
+
+    setIsDownloadingAll(true);
+    const config = { format, ...DIMENSIONS[format] };
+    const username = session?.username || "Developer";
+    const nickname = generateNickname(stats);
+
+    const slides = [
+      { name: "intro", html: generateIntroSlideHTML(username, selectedYear, config) },
+      { name: "stats", html: generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config) },
+      { name: "lines-of-code", html: generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config) },
+      { name: "nickname", html: generateNicknameSlideHTML(nickname.title, nickname.description, config) },
+      ...(stats.favoriteRepo ? [{ name: "favorite-repo", html: generateFavoriteRepoSlideHTML(stats.favoriteRepo.name, stats.favoriteRepo.stars, stats.favoriteRepo.commits, config) }] : []),
+      { name: "ai-tools", html: generateAIToolsSlideHTML(stats.aiToolsUsed, config) },
+      { name: "productivity", html: generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config) },
+      { name: "languages", html: generateLanguagesSlideHTML(stats.topLanguages, config) },
+      { name: "summary", html: generateSummarySlideHTML(stats, nickname, username, selectedYear, config) },
+    ];
+
+    try {
+      for (const slide of slides) {
+        await convertHTMLToImage(slide.html, `codify-wrapped-${slide.name}-${format}.png`);
+        await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY));
+      }
+    } catch (error) {
+      console.error("Error downloading slides:", error);
+      alert("Failed to download some slides. Please try again.");
+    } finally {
+      setIsDownloadingAll(false);
+    }
+  };
+
+  if (status === "loading" || loading) return <LoadingSkeleton />;
 
   if (error || !stats) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-red-500 text-xl font-mono">
-            {error || "Failed to load wrapped data"}
-          </p>
+          <p className="text-red-500 text-xl font-mono">{error || "Failed to load wrapped data"}</p>
           <button
             onClick={() => router.push("/")}
             className="bg-[#1DB954] text-black px-6 py-3 rounded-full font-bold hover:bg-[#1ed760] transition-colors"
@@ -114,303 +270,53 @@ export default function WrappedPage() {
 
   const nickname = generateNickname(stats);
   const funFact = generateFunFact(stats);
-
-  const downloadCurrentSlide = async (format: "phone" | "tab" | "desktop") => {
-    if (!stats) return;
-
-    const dimensions = {
-      phone: { width: 1170, height: 2532 },
-      tab: { width: 1640, height: 2360 },
-      desktop: { width: 1920, height: 1080 },
-    };
-
-    const config = { format, ...dimensions[format] };
-    const username = session?.username || "Developer";
-    const slideName = slideConfigs[currentSlide].name;
-
-    let html = "";
-
-    // Generate HTML based on current slide
-    switch (slideName) {
-      case "intro":
-        html = generateIntroSlideHTML(username, year, config);
-        break;
-      case "stats":
-        html = generateStatsSlideHTML(
-          stats.totalCommits,
-          stats.totalPRsMerged,
-          stats.totalIssuesResolved,
-          config
-        );
-        break;
-      case "lines-of-code":
-        html = generateLinesOfCodeSlideHTML(
-          stats.linesOfCode.added,
-          stats.linesOfCode.deleted,
-          stats.linesOfCode.net,
-          config
-        );
-        break;
-      case "nickname":
-        html = generateNicknameSlideHTML(nickname.title, nickname.description, config);
-        break;
-      case "favorite-repo":
-        if (stats.favoriteRepo) {
-          html = generateFavoriteRepoSlideHTML(
-            stats.favoriteRepo.name,
-            stats.favoriteRepo.stars,
-            stats.favoriteRepo.commits,
-            config
-          );
-        }
-        break;
-      case "ai-tools":
-        html = generateAIToolsSlideHTML(stats.aiToolsUsed, config);
-        break;
-      case "productivity":
-        html = generateProductivitySlideHTML(
-          stats.streak,
-          stats.mostProductiveDay,
-          stats.mostProductiveHour,
-          config
-        );
-        break;
-      case "summary":
-        html = generateSummarySlideHTML(stats, nickname, username, year, config);
-        break;
-      default:
-        return;
-    }
-
-    if (html) {
-      await convertHTMLToImage(html, `codify-wrapped-${slideName}-${format}.png`);
-    }
-  };
-
-  const downloadAllSlides = async (format: "phone" | "tab" | "desktop") => {
-    if (!stats) return;
-
-    setIsDownloadingAll(true);
-
-    // Map format to dimensions
-    const dimensions = {
-      phone: { width: 1170, height: 2532 },
-      tab: { width: 1640, height: 2360 },
-      desktop: { width: 1920, height: 1080 },
-    };
-
-    const config = { format, ...dimensions[format] };
-    const username = session?.username || "Developer";
-    const nickname = generateNickname(stats);
-
-    try {
-      // Generate and download intro slide
-      const introHTML = generateIntroSlideHTML(username, year, config);
-      await convertHTMLToImage(introHTML, `codify-wrapped-intro-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download stats slide
-      const statsHTML = generateStatsSlideHTML(
-        stats.totalCommits,
-        stats.totalPRsMerged,
-        stats.totalIssuesResolved,
-        config
-      );
-      await convertHTMLToImage(statsHTML, `codify-wrapped-stats-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download lines of code slide
-      const locHTML = generateLinesOfCodeSlideHTML(
-        stats.linesOfCode.added,
-        stats.linesOfCode.deleted,
-        stats.linesOfCode.net,
-        config
-      );
-      await convertHTMLToImage(locHTML, `codify-wrapped-lines-of-code-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download nickname slide
-      const nicknameHTML = generateNicknameSlideHTML(
-        nickname.title,
-        nickname.description,
-        config
-      );
-      await convertHTMLToImage(nicknameHTML, `codify-wrapped-nickname-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download favorite repo slide (if exists)
-      if (stats.favoriteRepo) {
-        const repoHTML = generateFavoriteRepoSlideHTML(
-          stats.favoriteRepo.name,
-          stats.favoriteRepo.stars,
-          stats.favoriteRepo.commits,
-          config
-        );
-        await convertHTMLToImage(repoHTML, `codify-wrapped-favorite-repo-${format}.png`);
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      // Generate and download AI tools slide
-      const aiHTML = generateAIToolsSlideHTML(stats.aiToolsUsed, config);
-      await convertHTMLToImage(aiHTML, `codify-wrapped-ai-tools-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download productivity slide
-      const productivityHTML = generateProductivitySlideHTML(
-        stats.streak,
-        stats.mostProductiveDay,
-        stats.mostProductiveHour,
-        config
-      );
-      await convertHTMLToImage(productivityHTML, `codify-wrapped-productivity-${format}.png`);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Generate and download summary slide
-      const summaryHTML = generateSummarySlideHTML(
-        stats,
-        nickname,
-        username,
-        year,
-        config
-      );
-      await convertHTMLToImage(summaryHTML, `codify-wrapped-summary-${format}.png`);
-    } catch (error) {
-      console.error("Error downloading slides:", error);
-      alert("Failed to download some slides. Please try again.");
-    } finally {
-      setIsDownloadingAll(false);
-    }
-  };
-
-  interface SlideConfig {
-    component: ReactElement;
-    name: string;
-  }
+  const earnedBadges = getEarnedBadges(stats);
 
   const slideConfigs: SlideConfig[] = [
-    {
-      component: (
-        <IntroSlide
-          key="intro"
-          username={session?.username || "Developer"}
-          year={year}
-        />
-      ),
-      name: "intro",
-    },
-    {
-      component: (
-        <StatsSlide
-          key="stats"
-          commits={stats.totalCommits}
-          prs={stats.totalPRsMerged}
-          issues={stats.totalIssuesResolved}
-        />
-      ),
-      name: "stats",
-    },
-    {
-      component: (
-        <LinesOfCodeSlide
-          key="loc"
-          added={stats.linesOfCode.added}
-          deleted={stats.linesOfCode.deleted}
-          net={stats.linesOfCode.net}
-        />
-      ),
-      name: "lines-of-code",
-    },
-    {
-      component: (
-        <NicknameSlide
-          key="nickname"
-          title={nickname.title}
-          description={nickname.description}
-          icon={nickname.icon}
-        />
-      ),
-      name: "nickname",
-    },
+    { component: <IntroSlide key="intro" username={session?.username || "Developer"} year={selectedYear} />, name: "intro" },
+    { component: <StatsSlide key="stats" commits={stats.totalCommits} prs={stats.totalPRsMerged} issues={stats.totalIssuesResolved} />, name: "stats" },
+    { component: <LinesOfCodeSlide key="loc" added={stats.linesOfCode.added} deleted={stats.linesOfCode.deleted} net={stats.linesOfCode.net} />, name: "lines-of-code" },
+    { component: <NicknameSlide key="nickname" title={nickname.title} description={nickname.description} icon={nickname.icon} />, name: "nickname" },
+    ...(stats.favoriteRepo ? [{ component: <FavoriteRepoSlide key="favorite" name={stats.favoriteRepo.name} stars={stats.favoriteRepo.stars} commits={stats.favoriteRepo.commits} />, name: "favorite-repo" }] : []),
+    { component: <AIToolsSlide key="ai" tools={stats.aiToolsUsed} />, name: "ai-tools" },
+    { component: <ProductivitySlide key="productivity" streak={stats.streak} mostProductiveDay={stats.mostProductiveDay} mostProductiveHour={stats.mostProductiveHour} />, name: "productivity" },
+    { component: <LanguagesSlide key="languages" languages={stats.topLanguages} />, name: "languages" },
+    { component: <BadgesSlide key="badges" badges={earnedBadges} />, name: "badges" },
+    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={session?.username || "Developer"} year={selectedYear} />, name: "summary" },
+    { component: <OutroSlide key="outro" username={session?.username || "Developer"} year={selectedYear} funFact={funFact} onDownloadAll={downloadAllSlides} isDownloading={isDownloadingAll} />, name: "outro" },
   ];
 
-  if (stats.favoriteRepo) {
-    slideConfigs.push({
-      component: (
-        <FavoriteRepoSlide
-          key="favorite"
-          name={stats.favoriteRepo.name}
-          stars={stats.favoriteRepo.stars}
-          commits={stats.favoriteRepo.commits}
-        />
-      ),
-      name: "favorite-repo",
-    });
-  }
-
-  slideConfigs.push(
-    {
-      component: <AIToolsSlide key="ai" tools={stats.aiToolsUsed} />,
-      name: "ai-tools",
-    },
-    {
-      component: (
-        <ProductivitySlide
-          key="productivity"
-          streak={stats.streak}
-          mostProductiveDay={stats.mostProductiveDay}
-          mostProductiveHour={stats.mostProductiveHour}
-        />
-      ),
-      name: "productivity",
-    },
-    {
-      component: (
-        <SummarySlide
-          key="summary"
-          stats={stats}
-          nickname={nickname}
-          username={session?.username || "Developer"}
-          year={year}
-        />
-      ),
-      name: "summary",
-    },
-    {
-      component: (
-        <OutroSlide
-          key="outro"
-          username={session?.username || "Developer"}
-          year={year}
-          funFact={funFact}
-          onDownloadAll={downloadAllSlides}
-          isDownloading={isDownloadingAll}
-        />
-      ),
-      name: "outro",
-    }
-  );
-
   const nextSlide = () => {
-    if (currentSlide < slideConfigs.length - 1) {
-      setCurrentSlide(currentSlide + 1);
-    }
+    if (currentSlide < slideConfigs.length - 1) setCurrentSlide(currentSlide + 1);
   };
 
   const prevSlide = () => {
-    if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1);
-    }
+    if (currentSlide > 0) setCurrentSlide(currentSlide - 1);
   };
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      <div ref={slideRef}>
+      <motion.div
+        ref={slideRef}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, { offset, velocity }) => {
+          const swipe = Math.abs(offset.x) * velocity.x;
+          if (swipe > 10000) {
+            offset.x < 0 ? nextSlide() : prevSlide();
+          }
+        }}
+        className="cursor-grab active:cursor-grabbing"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <AnimatePresence mode="wait">
           {slideConfigs[currentSlide].component}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      {/* Navigation */}
       <div className="fixed bottom-4 sm:bottom-6 md:bottom-8 left-0 right-0 flex justify-center items-center gap-2 sm:gap-3 md:gap-4 z-10 px-4">
         <button
           onClick={prevSlide}
@@ -426,9 +332,7 @@ export default function WrappedPage() {
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={`h-1.5 sm:h-2 rounded-full transition-all flex-shrink-0 ${
-                index === currentSlide
-                  ? "bg-[#1DB954] w-6 sm:w-8"
-                  : "bg-white/30 w-1.5 sm:w-2 hover:bg-white/50"
+                index === currentSlide ? "bg-[#1DB954] w-6 sm:w-8" : "bg-white/30 w-1.5 sm:w-2 hover:bg-white/50"
               }`}
             />
           ))}
@@ -443,25 +347,97 @@ export default function WrappedPage() {
         </button>
       </div>
 
-      {/* Top Right Controls */}
-      <div className="fixed top-4 sm:top-6 md:top-8 right-4 sm:right-6 md:right-8 z-10 flex items-center gap-2 sm:gap-3">
-        <DownloadButton
-          slideRef={slideRef}
-          slideName={slideConfigs[currentSlide].name}
-          onDownload={downloadCurrentSlide}
-        />
+      <div className="fixed top-4 sm:top-6 md:top-8 right-2 sm:right-4 md:right-6 lg:right-8 z-10 flex items-center gap-1.5 sm:gap-2 md:gap-3">
+        <button
+          onClick={() => setShowShareDialog(true)}
+          className="bg-[#1DB954]/20 hover:bg-[#1DB954]/30 text-[#1DB954] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all backdrop-blur-sm shadow-lg border border-[#1DB954]/50"
+          title="Share your wrapped"
+          aria-label="Share your wrapped"
+        >
+          <FaShare className="text-xs sm:text-sm md:text-base" />
+          <span className="font-semibold hidden md:inline text-sm">Share</span>
+        </button>
+        <DownloadButton slideRef={slideRef} slideName={slideConfigs[currentSlide].name} onDownload={downloadCurrentSlide} />
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="bg-white/10 hover:bg-white/20 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all backdrop-blur-sm shadow-lg text-sm sm:text-base"
+          className="bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all backdrop-blur-sm shadow-lg"
+          aria-label="Sign out"
         >
-          <FaSignOutAlt className="text-sm sm:text-base" />
-          <span className="font-semibold hidden sm:inline">Sign Out</span>
+          <FaSignOutAlt className="text-xs sm:text-sm md:text-base" />
+          <span className="font-semibold hidden md:inline text-sm">Sign Out</span>
         </button>
       </div>
 
-      {/* Slide Counter */}
-      <div className="fixed top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 bg-white/10 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm z-10 font-mono shadow-lg text-xs sm:text-sm md:text-base">
-        {currentSlide + 1} / {slideConfigs.length}
+      <ShareDialog
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        stats={{ commits: stats.totalCommits, prs: stats.totalPRsMerged, issues: stats.totalIssuesResolved }}
+        year={selectedYear}
+        username={session?.username}
+      />
+
+      <div className="fixed top-4 sm:top-6 md:top-8 left-2 sm:left-4 md:left-6 lg:left-8 z-10 flex flex-col gap-2 max-w-[calc(100vw-8rem)] sm:max-w-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap">
+          <div className="bg-white/10 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm font-mono shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
+            {currentSlide + 1} / {slideConfigs.length}
+          </div>
+
+          <div className="relative" ref={yearDropdownRef}>
+            <button
+              onClick={() => setShowYearDropdown(!showYearDropdown)}
+              className="bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm font-mono shadow-lg text-xs sm:text-sm md:text-base transition-all flex items-center gap-1.5 sm:gap-2"
+              aria-label="Select year"
+            >
+              <FaCalendarAlt className="text-xs sm:text-sm" />
+              <span>{selectedYear}</span>
+              <FaChevronDown className={`text-xs transition-transform ${showYearDropdown ? "rotate-180" : ""}`} />
+            </button>
+
+            <AnimatePresence>
+              {showYearDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute top-full mt-2 left-0 bg-[#1a1a1a] backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 min-w-[120px]"
+                >
+                  <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                    {yearOptions.map((year) => (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          setSelectedYear(year);
+                          setShowYearDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-white/10 transition-colors ${
+                          year === selectedYear ? "bg-[#1DB954]/20 text-[#1DB954] font-semibold" : "text-white"
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="bg-white/10 hover:bg-white/20 text-white px-2 sm:px-2.5 md:px-3.5 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
+            title="Refresh data"
+            aria-label="Refresh data"
+          >
+            <FaSync className={`text-xs sm:text-sm md:text-base ${isRefreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+        {cacheAge !== null && cacheAge > 0 && (
+          <div className="bg-white/5 text-gray-400 px-2 sm:px-3 py-1 rounded-full backdrop-blur-sm text-xs whitespace-nowrap">
+            Updated {formatCacheAge(cacheAge)}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,17 +4,17 @@ A beautiful, Spotify-inspired web application that showcases your GitHub activit
 
 ## Features
 
-- GitHub OAuth authentication
+- GitHub OAuth authentication with private repository access
 - Comprehensive GitHub statistics:
   - Total commits, pull requests, and issues resolved
   - Lines of code written (added/deleted/net)
   - Code review statistics
-  - Favorite repository
+  - Favorite repository (including private repos)
   - AI tools detection in commit messages
   - Productivity patterns (streak, most productive day/hour)
 - Personalized nicknames based on your coding patterns
 - Spotify-themed UI with smooth animations
-- Interactive slide navigation with keyboard support
+- Interactive slide navigation with keyboard, button, and swipe/touch gesture support
 - Social media sharing capabilities
 
 ## Tech Stack
@@ -55,6 +55,8 @@ npm install
 5. Copy your **Client ID**
 6. Generate a new **Client Secret** and copy it
 
+**Note**: The app will request access to both public and private repositories to provide comprehensive statistics.
+
 ### 3. Configure Environment Variables
 
 Copy the `.env.example` file to `.env.local`:
@@ -88,11 +90,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Usage
 
 1. Click "Sign in with GitHub" on the home page
-2. Authorize the application
+2. Authorize the application (grants access to public and private repositories)
 3. Wait for your stats to load
 4. Navigate through the slides using:
    - Arrow buttons at the bottom
    - Keyboard arrow keys (left/right)
+   - Swipe gestures on touch devices (left/right)
    - Slide indicators (dots)
 5. Share your wrapped on social media!
 

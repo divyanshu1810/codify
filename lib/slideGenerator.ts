@@ -355,3 +355,91 @@ export function generateSummarySlideHTML(
     </div>
   `;
 }
+
+export function generateLanguagesSlideHTML(
+  languages: { name: string; percentage: number }[],
+  config: SlideGeneratorConfig
+): string {
+  const styles = getResponsiveStyles(config.format);
+
+  const languageColors: { [key: string]: string } = {
+    JavaScript: "#f7df1e",
+    TypeScript: "#3178c6",
+    Python: "#3776ab",
+    Java: "#007396",
+    Go: "#00add8",
+    Rust: "#ce422b",
+    Ruby: "#cc342d",
+    PHP: "#777bb4",
+    "C++": "#00599c",
+    C: "#a8b9cc",
+    Swift: "#fa7343",
+    Kotlin: "#7f52ff",
+    HTML: "#e34c26",
+    CSS: "#563d7c",
+    Shell: "#89e051",
+    Dart: "#0175c2",
+  };
+
+  const getLanguageColor = (name: string) => {
+    return languageColors[name] || "#1DB954";
+  };
+
+  const languageBars = languages
+    .slice(0, 5)
+    .map(
+      (lang) => `
+    <div style="margin-bottom: ${styles.spacing};">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: white; font-weight: 600; font-size: ${styles.fontSize};">${lang.name}</span>
+        <span style="color: #1DB954; font-weight: 700; font-size: ${styles.fontSize};">${lang.percentage}%</span>
+      </div>
+      <div style="width: 100%; height: 16px; background: rgba(255, 255, 255, 0.1); border-radius: 999px; overflow: hidden;">
+        <div style="width: ${lang.percentage}%; height: 100%; background: ${getLanguageColor(lang.name)}; border-radius: 999px;"></div>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+
+  return `
+    <div style="
+      width: ${config.width}px;
+      height: ${config.height}px;
+      background: linear-gradient(135deg, #000000 0%, #121212 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: ${styles.padding};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    ">
+      <div style="text-align: center; max-width: 800px; width: 100%;">
+        <div style="
+          width: ${styles.iconSize};
+          height: ${styles.iconSize};
+          background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto ${styles.spacing};
+        ">
+          <svg width="${parseInt(styles.iconSize) * 0.5}" height="${parseInt(styles.iconSize) * 0.5}" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        </div>
+        <div style="font-size: ${styles.titleSize}; font-weight: 700; color: white; margin-bottom: ${styles.spacing};">
+          Your Languages
+        </div>
+        <div style="font-size: ${styles.subtitleSize}; color: #B3B3B3; margin-bottom: calc(${styles.spacing} * 2);">
+          Most used programming languages
+        </div>
+        <div style="width: 100%;">
+          ${languageBars}
+        </div>
+      </div>
+    </div>
+  `;
+}

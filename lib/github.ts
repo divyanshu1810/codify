@@ -38,6 +38,16 @@ export class GitHubService {
     this.username = username;
   }
 
+  async getAccountCreationYear(): Promise<number> {
+    try {
+      const { data } = await this.octokit.users.getByUsername({ username: this.username });
+      return new Date(data.created_at).getFullYear();
+    } catch (error) {
+      console.error("Error fetching account creation date:", error);
+      return new Date().getFullYear() - 5;
+    }
+  }
+
   async getYearWrapped(year: number = new Date().getFullYear()): Promise<GitHubStats> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59);
@@ -80,6 +90,10 @@ export class GitHubService {
     };
   }
 
+  private formatDate(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
   private async getCommits(startDate: Date, endDate: Date) {
     let allCommits: any[] = [];
     let page = 1;
@@ -88,7 +102,7 @@ export class GitHubService {
     try {
       while (true) {
         const { data } = await this.octokit.search.commits({
-          q: `author:${this.username} committer-date:${startDate.toISOString().split('T')[0]}..${endDate.toISOString().split('T')[0]}`,
+          q: `author:${this.username} committer-date:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
           sort: "committer-date",
           order: "desc",
           per_page: perPage,
@@ -111,7 +125,7 @@ export class GitHubService {
   private async getPullRequests(startDate: Date, endDate: Date) {
     try {
       const { data } = await this.octokit.search.issuesAndPullRequests({
-        q: `author:${this.username} type:pr is:merged merged:${startDate.toISOString().split('T')[0]}..${endDate.toISOString().split('T')[0]}`,
+        q: `author:${this.username} type:pr is:merged merged:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
         per_page: 100,
       });
 
@@ -125,7 +139,7 @@ export class GitHubService {
   private async getIssues(startDate: Date, endDate: Date) {
     try {
       const { data } = await this.octokit.search.issuesAndPullRequests({
-        q: `author:${this.username} type:issue is:closed closed:${startDate.toISOString().split('T')[0]}..${endDate.toISOString().split('T')[0]}`,
+        q: `author:${this.username} type:issue is:closed closed:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
         per_page: 100,
       });
 
@@ -138,10 +152,10 @@ export class GitHubService {
 
   private async getRepositories() {
     try {
-      const { data } = await this.octokit.repos.listForUser({
-        username: this.username,
+      const { data } = await this.octokit.repos.listForAuthenticatedUser({
         per_page: 100,
         sort: "updated",
+        affiliation: "owner,collaborator,organization_member",
       });
 
       return data;
@@ -152,19 +166,15 @@ export class GitHubService {
   }
 
   private async getReviews(startDate: Date, endDate: Date) {
-    let linesReviewed = 0;
+    const ESTIMATED_LINES_PER_REVIEW = 200;
 
     try {
       const { data } = await this.octokit.search.issuesAndPullRequests({
-        q: `reviewed-by:${this.username} type:pr reviewed:${startDate.toISOString().split('T')[0]}..${endDate.toISOString().split('T')[0]}`,
+        q: `reviewed-by:${this.username} type:pr reviewed:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
         per_page: 100,
       });
 
-      // Estimate lines reviewed (GitHub API doesn't provide exact number)
-      // Average PR review is ~200 lines
-      linesReviewed = data.total_count * 200;
-
-      return { linesReviewed };
+      return { linesReviewed: data.total_count * ESTIMATED_LINES_PER_REVIEW };
     } catch (error) {
       console.error("Error fetching reviews:", error);
       return { linesReviewed: 0 };
@@ -178,9 +188,6 @@ export class GitHubService {
         per_page: 100,
       });
 
-      // Note: GitHub API doesn't provide follower history
-      // This is a limitation - we can only show current followers
-      // In a production app, you'd need to track this over time
       return currentFollowers.length;
     } catch (error) {
       console.error("Error fetching followers:", error);
@@ -189,20 +196,13 @@ export class GitHubService {
   }
 
   private calculateLinesOfCode(commits: any[]) {
-    let added = 0;
-    let deleted = 0;
+    const ESTIMATED_LINES_ADDED_PER_COMMIT = 50;
+    const ESTIMATED_LINES_DELETED_PER_COMMIT = 20;
 
-    // Note: GitHub Search API doesn't include stats
-    // We'll need to estimate based on commit count
-    // Average commit: ~50 lines added, ~20 deleted
-    added = commits.length * 50;
-    deleted = commits.length * 20;
+    const added = commits.length * ESTIMATED_LINES_ADDED_PER_COMMIT;
+    const deleted = commits.length * ESTIMATED_LINES_DELETED_PER_COMMIT;
 
-    return {
-      added,
-      deleted,
-      net: added - deleted,
-    };
+    return { added, deleted, net: added - deleted };
   }
 
   private detectAITools(commits: any[]) {
@@ -289,35 +289,39 @@ export class GitHubService {
       commitsByHour.set(hour, (commitsByHour.get(hour) || 0) + 1);
     });
 
-    const mostProductiveDay = Array.from(commitsByDay.entries())
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || "Monday";
+    const getMostFrequent = <T>(map: Map<T, number>, defaultValue: T): T => {
+      return Array.from(map.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || defaultValue;
+    };
 
-    const mostProductiveHour = Array.from(commitsByHour.entries())
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || 14;
+    const calculateStreak = (commits: any[]): number => {
+      const commitDates = commits
+        .map(c => new Date(c.commit?.committer?.date || c.commit?.author?.date).toDateString())
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort();
 
-    // Calculate streak (simplified - counts consecutive days with commits)
-    const commitDates = commits
-      .map(c => new Date(c.commit?.committer?.date || c.commit?.author?.date).toDateString())
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .sort();
+      let maxStreak = 0;
+      let currentStreak = 1;
 
-    let streak = 0;
-    let currentStreak = 1;
-    for (let i = 1; i < commitDates.length; i++) {
-      const prevDate = new Date(commitDates[i - 1]);
-      const currDate = new Date(commitDates[i]);
-      const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      for (let i = 1; i < commitDates.length; i++) {
+        const daysDiff = Math.ceil(
+          (new Date(commitDates[i]).getTime() - new Date(commitDates[i - 1]).getTime()) / (1000 * 60 * 60 * 24)
+        );
 
-      if (diffDays === 1) {
-        currentStreak++;
-      } else {
-        streak = Math.max(streak, currentStreak);
-        currentStreak = 1;
+        if (daysDiff === 1) {
+          currentStreak++;
+        } else {
+          maxStreak = Math.max(maxStreak, currentStreak);
+          currentStreak = 1;
+        }
       }
-    }
-    streak = Math.max(streak, currentStreak);
 
-    return { streak, mostProductiveDay, mostProductiveHour };
+      return Math.max(maxStreak, currentStreak);
+    };
+
+    return {
+      streak: calculateStreak(commits),
+      mostProductiveDay: getMostFrequent(commitsByDay, "Monday"),
+      mostProductiveHour: getMostFrequent(commitsByHour, 14),
+    };
   }
 }
