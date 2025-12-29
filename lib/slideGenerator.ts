@@ -1,4 +1,4 @@
-import { GitHubStats } from "./github";
+import { GitHubStats, GitHubUserProfile } from "./github";
 
 interface SlideGeneratorConfig {
   format: "phone" | "tab" | "desktop";
@@ -40,7 +40,8 @@ export function generateIntroSlideHTML(
   username: string,
   year: number,
   config: SlideGeneratorConfig,
-  userImage?: string
+  userImage?: string,
+  userProfile?: GitHubUserProfile
 ): string {
   const styles = getResponsiveStyles(config.format);
 
@@ -98,13 +99,32 @@ export function generateIntroSlideHTML(
         color: #000000;
         margin: ${styles.spacing} 0;
         text-align: center;
-      ">${username}</h1>
+      ">${userProfile?.name || username}</h1>
+      <p style="font-size: ${styles.fontSize}; color: rgba(0, 0, 0, 0.8); font-family: monospace; text-align: center;">@${username}</p>
+      ${userProfile?.bio ? `<p style="font-size: ${parseInt(styles.fontSize) - 2}px; color: rgba(0, 0, 0, 0.8); margin: ${styles.spacing} 0; text-align: center; font-style: italic; max-width: 500px;">"${userProfile.bio}"</p>` : ''}
       <p style="font-size: ${styles.subtitleSize}; color: rgba(0, 0, 0, 0.9); margin: ${styles.spacing} 0; text-align: center; font-weight: 600;">
         Your ${year} GitHub Unwrapped
       </p>
-      <p style="font-size: ${styles.fontSize}; color: rgba(0, 0, 0, 0.8); margin-top: ${styles.spacing}; text-align: center; font-weight: 500;">
-        Let's see what you've built this year
-      </p>
+      ${userProfile ? `
+        <div style="display: grid; grid-template-columns: repeat(${config.format === 'phone' ? '2' : '4'}, 1fr); gap: 8px; margin-top: ${styles.spacing};">
+          ${userProfile.location ? `
+            <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 8px; font-size: ${parseInt(styles.fontSize) - 2}px; color: #000; text-align: center;">
+              ${userProfile.location}
+            </div>
+          ` : ''}
+          ${userProfile.company ? `
+            <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 8px; font-size: ${parseInt(styles.fontSize) - 2}px; color: #000; text-align: center;">
+              ${userProfile.company}
+            </div>
+          ` : ''}
+          <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 8px; font-size: ${parseInt(styles.fontSize) - 2}px; color: #000; text-align: center;">
+            ${userProfile.followers} followers
+          </div>
+          <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 8px; font-size: ${parseInt(styles.fontSize) - 2}px; color: #000; text-align: center;">
+            ${userProfile.public_repos} repos
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -209,7 +229,11 @@ export function generateNicknameSlideHTML(
       color: white;
       padding: ${styles.padding};
     ">
-      <div style="font-size: ${styles.iconSize}; margin-bottom: ${styles.spacing};">🏆</div>
+      <div style="margin-bottom: ${styles.spacing};">
+        <svg width="${styles.iconSize}" height="${styles.iconSize}" viewBox="0 0 24 24" fill="#FFD700" style="display: inline-block;">
+          <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+        </svg>
+      </div>
       <h2 style="font-size: ${styles.subtitleSize}; color: #B3B3B3; margin-bottom: ${styles.spacing}; text-align: center;">Your Developer Title</h2>
       <h1 style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954; margin-bottom: ${styles.spacing}; text-align: center;">${title}</h1>
       <p style="font-size: ${styles.fontSize}; color: #B3B3B3; max-width: 600px; text-align: center; line-height: 1.6;">
@@ -244,11 +268,11 @@ export function generateFavoriteRepoSlideHTML(
       <h1 style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954; margin-bottom: ${styles.spacing}; text-align: center;">${name}</h1>
       <div style="display: flex; gap: ${styles.spacing}; margin-top: ${styles.spacing};">
         <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 12px; padding: ${styles.spacing}; text-align: center;">
-          <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">⭐ ${stars}</div>
+          <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">${stars}</div>
           <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-top: 8px;">Stars</div>
         </div>
         <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 12px; padding: ${styles.spacing}; text-align: center;">
-          <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">💻 ${commits}</div>
+          <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">${commits}</div>
           <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-top: 8px;">Commits</div>
         </div>
       </div>
@@ -287,7 +311,11 @@ export function generateAIToolsSlideHTML(
           `).join('')}
         </div>
       ` : `
-        <div style="font-size: ${styles.iconSize}; margin-top: ${styles.spacing};">👨‍💻</div>
+        <div style="font-size: ${styles.iconSize}; margin-top: ${styles.spacing}; text-align: center;">
+          <svg width="${parseInt(styles.iconSize)}" height="${parseInt(styles.iconSize)}" viewBox="0 0 24 24" fill="#1DB954" style="display: inline-block;">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+          </svg>
+        </div>
         <p style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-top: ${styles.spacing}; text-align: center;">
           No AI assistants detected. All code crafted by human hands!
         </p>
@@ -320,15 +348,15 @@ export function generateProductivitySlideHTML(
       <h2 style="font-size: ${styles.titleSize}; font-weight: 800; margin-bottom: ${styles.spacing}; text-align: center;">Productivity Patterns</h2>
       <div style="display: flex; flex-direction: column; gap: ${styles.spacing}; width: 100%; max-width: 600px;">
         <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 12px; padding: ${styles.spacing};">
-          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">🔥 Longest Streak</div>
+          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">Longest Streak</div>
           <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">${streak} days</div>
         </div>
         <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 12px; padding: ${styles.spacing};">
-          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">📅 Most Productive Day</div>
+          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">Most Productive Day</div>
           <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">${mostProductiveDay}</div>
         </div>
         <div style="background: rgba(29, 185, 84, 0.1); border: 2px solid #1DB954; border-radius: 12px; padding: ${styles.spacing};">
-          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">⏰ Peak Coding Hour</div>
+          <div style="font-size: ${styles.fontSize}; color: #B3B3B3; margin-bottom: 8px;">Peak Coding Hour</div>
           <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #1DB954;">${mostProductiveHour}:00</div>
         </div>
       </div>
@@ -395,8 +423,32 @@ export function generateSummarySlideHTML(
         `}
       </div>
       <h1 style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954; margin-bottom: ${styles.spacing}; text-align: center;">
-        ${username}'s ${year} Summary
+        ${stats.userProfile?.name || username}'s ${year} Unwrapped
       </h1>
+      <p style="font-size: ${styles.fontSize}; color: #1DB954; font-family: monospace; text-align: center; margin-bottom: 8px;">@${username}</p>
+      ${stats.userProfile?.bio ? `<p style="font-size: ${parseInt(styles.fontSize) - 2}px; color: #B3B3B3; margin-bottom: ${styles.spacing}; text-align: center; font-style: italic; max-width: 400px;">"${stats.userProfile.bio}"</p>` : ''}
+
+      ${stats.userProfile ? `
+        <div style="display: grid; grid-template-columns: repeat(${config.format === 'phone' ? '2' : '4'}, 1fr); gap: 8px; margin-bottom: ${styles.spacing}; width: 100%; max-width: 600px;">
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #3b82f6;">${stats.userProfile.followers}</div>
+            <div style="font-size: ${parseInt(styles.fontSize) - 2}px; color: #B3B3B3;">Followers</div>
+          </div>
+          <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #3b82f6;">${stats.userProfile.following}</div>
+            <div style="font-size: ${parseInt(styles.fontSize) - 2}px; color: #B3B3B3;">Following</div>
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #a855f7;">${stats.userProfile.public_repos}</div>
+            <div style="font-size: ${parseInt(styles.fontSize) - 2}px; color: #B3B3B3;">Repos</div>
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 12px; text-align: center;">
+            <div style="font-size: ${styles.subtitleSize}; font-weight: 800; color: #a855f7;">${stats.userProfile.public_gists}</div>
+            <div style="font-size: ${parseInt(styles.fontSize) - 2}px; color: #B3B3B3;">Gists</div>
+          </div>
+        </div>
+      ` : ''}
+
       <div style="display: grid; grid-template-columns: repeat(${config.format === 'phone' ? '1' : '2'}, 1fr); gap: 12px; width: 100%; max-width: 800px;">
         <div style="background: rgba(29, 185, 84, 0.05); border: 1px solid #1DB954; border-radius: 8px; padding: 16px;">
           <div style="font-size: ${styles.fontSize}; color: #B3B3B3;">Total Commits</div>
@@ -510,6 +562,133 @@ export function generateLanguagesSlideHTML(
         <div style="width: 100%;">
           ${languageBars}
         </div>
+      </div>
+    </div>
+  `;
+}
+
+export function generateCollaborationSlideHTML(
+  collaborators: Array<{ username: string; avatar: string; interactions: number }>,
+  config: SlideGeneratorConfig
+): string {
+  const styles = getResponsiveStyles(config.format);
+  const hasCollaborators = collaborators.length > 0;
+  const totalInteractions = collaborators.reduce((sum, collab) => sum + collab.interactions, 0);
+
+  const avatarSize = config.format === 'phone' ? '48px' : config.format === 'tab' ? '56px' : '64px';
+
+  if (!hasCollaborators) {
+    return `
+      <div style="
+        width: ${config.width}px;
+        height: ${config.height}px;
+        background: linear-gradient(135deg, #6B46C1 0%, #553C9A 50%, #2563EB 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'JetBrains Mono', 'SF Mono', monospace;
+        color: white;
+        padding: ${styles.padding};
+      ">
+        <h2 style="font-size: ${styles.titleSize}; font-weight: 800; margin-bottom: ${styles.spacing}; text-align: center;">
+          Solo Developer
+        </h2>
+        <div style="margin-top: ${styles.spacing}; text-align: center;">
+          <svg width="${styles.iconSize}" height="${styles.iconSize}" viewBox="0 0 24 24" fill="rgba(255, 255, 255, 0.6)" style="display: inline-block;">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+        <p style="font-size: ${styles.fontSize}; color: rgba(255, 255, 255, 0.8); margin-top: ${styles.spacing}; text-align: center; max-width: 500px;">
+          You're coding solo this year. Sometimes the best work is done independently!
+        </p>
+      </div>
+    `;
+  }
+
+  const collaboratorItems = collaborators.slice(0, 5).map((collab, index) => `
+    <div style="
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: ${styles.spacing};
+      display: flex;
+      align-items: center;
+      gap: ${styles.spacing};
+      margin-bottom: 12px;
+    ">
+      <div style="position: relative;">
+        <img
+          src="${collab.avatar}"
+          alt="${collab.username}"
+          style="
+            width: ${avatarSize};
+            height: ${avatarSize};
+            border-radius: 50%;
+            border: 3px solid #1DB954;
+            object-fit: cover;
+          "
+          onerror="this.src='https://github.com/${collab.username}.png'"
+        />
+        <div style="
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #1DB954;
+          color: #000;
+          font-size: ${parseInt(styles.fontSize) - 4}px;
+          font-weight: 700;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ${index + 1}
+        </div>
+      </div>
+      <div style="flex: 1;">
+        <div style="font-size: ${styles.fontSize}; font-weight: 700; color: white;">${collab.username}</div>
+        <div style="font-size: ${parseInt(styles.fontSize) - 2}px; color: rgba(255, 255, 255, 0.7);">
+          ${collab.interactions} interaction${collab.interactions !== 1 ? 's' : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div style="
+      width: ${config.width}px;
+      height: ${config.height}px;
+      background: linear-gradient(135deg, #6B46C1 0%, #553C9A 50%, #2563EB 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      color: white;
+      padding: ${styles.padding};
+    ">
+      <h2 style="font-size: ${styles.titleSize}; font-weight: 800; margin-bottom: ${styles.spacing}; text-align: center;">
+        Your Collaboration Circle
+      </h2>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: ${styles.spacing}; width: 100%; max-width: 600px; margin-bottom: ${styles.spacing};">
+        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: ${styles.spacing}; text-align: center;">
+          <div style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954;">${collaborators.length}</div>
+          <div style="font-size: ${styles.fontSize}; color: rgba(255, 255, 255, 0.9); margin-top: 8px;">Top Collaborators</div>
+        </div>
+        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: ${styles.spacing}; text-align: center;">
+          <div style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954;">${totalInteractions}</div>
+          <div style="font-size: ${styles.fontSize}; color: rgba(255, 255, 255, 0.9); margin-top: 8px;">Total Interactions</div>
+        </div>
+      </div>
+
+      <div style="width: 100%; max-width: 700px;">
+        <h3 style="font-size: ${styles.subtitleSize}; font-weight: 700; text-align: center; margin-bottom: ${styles.spacing};">
+          Your Top Collaborators
+        </h3>
+        ${collaboratorItems}
       </div>
     </div>
   `;

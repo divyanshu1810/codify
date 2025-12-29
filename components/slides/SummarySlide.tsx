@@ -15,7 +15,7 @@ import {
   FaUser
 } from "react-icons/fa";
 import { Slide } from "../Slide";
-import { GitHubStats } from "@/lib/github";
+import { GitHubStats, GitHubUserProfile } from "@/lib/github";
 import { Nickname } from "@/lib/nicknames";
 import * as Icons from "react-icons/fa";
 import { IconType } from "react-icons";
@@ -26,9 +26,10 @@ interface SummarySlideProps {
   username: string;
   year: number;
   userImage?: string;
+  userProfile?: GitHubUserProfile;
 }
 
-export function SummarySlide({ stats, nickname, username, year, userImage }: SummarySlideProps) {
+export function SummarySlide({ stats, nickname, username, year, userImage, userProfile }: SummarySlideProps) {
   const NicknameIcon = (Icons as any)[nickname.icon] as IconType || Icons.FaStar;
 
   const formatHour = (hour: number) => {
@@ -61,10 +62,56 @@ export function SummarySlide({ stats, nickname, username, year, userImage }: Sum
             )}
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            {username}'s {year} Unwrapped
+            {userProfile?.name || username}'s {year} Unwrapped
           </h2>
-          <p className="text-[#B3B3B3] text-sm sm:text-base md:text-lg font-medium">Complete Summary</p>
+          <p className="text-[#1DB954] text-sm sm:text-base font-mono">@{username}</p>
+          {userProfile?.bio && (
+            <p className="text-[#B3B3B3] text-xs sm:text-sm max-w-md mx-auto italic">"{userProfile.bio}"</p>
+          )}
+          <p className="text-[#B3B3B3] text-sm sm:text-base md:text-lg font-medium pt-1">Complete Summary</p>
         </motion.div>
+
+        {/* User Profile Stats */}
+        {userProfile && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.05 }}
+              className="bg-[#1a1a1a] border border-blue-500/20 rounded-lg p-2 sm:p-3 text-center"
+            >
+              <div className="text-base sm:text-lg md:text-xl font-bold text-blue-500 font-mono">{userProfile.followers}</div>
+              <p className="text-[#B3B3B3] text-xs">Followers</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.08 }}
+              className="bg-[#1a1a1a] border border-blue-500/20 rounded-lg p-2 sm:p-3 text-center"
+            >
+              <div className="text-base sm:text-lg md:text-xl font-bold text-blue-500 font-mono">{userProfile.following}</div>
+              <p className="text-[#B3B3B3] text-xs">Following</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.11 }}
+              className="bg-[#1a1a1a] border border-purple-500/20 rounded-lg p-2 sm:p-3 text-center"
+            >
+              <div className="text-base sm:text-lg md:text-xl font-bold text-purple-500 font-mono">{userProfile.public_repos}</div>
+              <p className="text-[#B3B3B3] text-xs">Public Repos</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.14 }}
+              className="bg-[#1a1a1a] border border-purple-500/20 rounded-lg p-2 sm:p-3 text-center"
+            >
+              <div className="text-base sm:text-lg md:text-xl font-bold text-purple-500 font-mono">{userProfile.public_gists}</div>
+              <p className="text-[#B3B3B3] text-xs">Gists</p>
+            </motion.div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Nickname */}

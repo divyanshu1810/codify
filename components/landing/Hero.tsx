@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FaCode, FaGithub, FaRocket, FaStar, FaChartLine, FaFire, FaUser, FaInfoCircle } from "react-icons/fa";
+import { FaCode, FaGithub, FaRocket, FaStar, FaChartLine, FaFire, FaUser, FaInfoCircle, FaExclamationTriangle } from "react-icons/fa";
 import { signIn } from "next-auth/react";
 import { TextGradient } from "../ui/text-gradient";
 import { Tooltip } from "../ui/Tooltip";
@@ -132,7 +132,9 @@ export function Hero({ currentYear, isLoading }: HeroProps) {
             <Tooltip
               content={
                 <div className="space-y-2">
-                  <p className="font-semibold text-[#1DB954]">⚠️ Limited Access</p>
+                  <p className="font-semibold text-[#1DB954] flex items-center gap-2">
+                    <FaExclamationTriangle className="inline" /> Limited Access
+                  </p>
                   <p>
                     Guest mode uses GitHub's public API with strict rate limits (60 requests/hour).
                     For the best experience with full stats and no limitations, we recommend signing in with GitHub.

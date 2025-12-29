@@ -12,6 +12,7 @@ import { NicknameSlide } from "@/components/slides/NicknameSlide";
 import { FavoriteRepoSlide } from "@/components/slides/FavoriteRepoSlide";
 import { AIToolsSlide } from "@/components/slides/AIToolsSlide";
 import { ProductivitySlide } from "@/components/slides/ProductivitySlide";
+import { CollaborationSlide } from "@/components/slides/CollaborationSlide";
 import { LanguagesSlide } from "@/components/slides/LanguagesSlide";
 import { BadgesSlide } from "@/components/slides/BadgesSlide";
 import { SummarySlide } from "@/components/slides/SummarySlide";
@@ -33,6 +34,7 @@ import {
   generateFavoriteRepoSlideHTML,
   generateAIToolsSlideHTML,
   generateProductivitySlideHTML,
+  generateCollaborationSlideHTML,
   generateLanguagesSlideHTML,
   generateSummarySlideHTML,
 } from "@/lib/slideGenerator";
@@ -244,13 +246,14 @@ export default function WrappedPage() {
     if (!stats) return "";
 
     const generators: Record<string, () => string> = {
-      intro: () => generateIntroSlideHTML(username, selectedYear, config, userImage),
+      intro: () => generateIntroSlideHTML(username, selectedYear, config, userImage, stats.userProfile),
       stats: () => generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config),
       "lines-of-code": () => generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config),
       nickname: () => generateNicknameSlideHTML(nickname.title, nickname.description, config),
       "favorite-repo": () => stats.favoriteRepo ? generateFavoriteRepoSlideHTML(stats.favoriteRepo.name, stats.favoriteRepo.stars, stats.favoriteRepo.commits, config) : "",
       "ai-tools": () => generateAIToolsSlideHTML(stats.aiToolsUsed, config),
       productivity: () => generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config),
+      collaboration: () => generateCollaborationSlideHTML(stats.topCollaborators, config),
       languages: () => generateLanguagesSlideHTML(stats.topLanguages, config),
       summary: () => generateSummarySlideHTML(stats, nickname, username, selectedYear, config, userImage),
     };
@@ -281,13 +284,14 @@ export default function WrappedPage() {
     const nickname = generateNickname(stats);
 
     const slides = [
-      { name: "intro", html: generateIntroSlideHTML(username, selectedYear, config, userImage) },
+      { name: "intro", html: generateIntroSlideHTML(username, selectedYear, config, userImage, stats.userProfile) },
       { name: "stats", html: generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config) },
       { name: "lines-of-code", html: generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config) },
       { name: "nickname", html: generateNicknameSlideHTML(nickname.title, nickname.description, config) },
       ...(stats.favoriteRepo ? [{ name: "favorite-repo", html: generateFavoriteRepoSlideHTML(stats.favoriteRepo.name, stats.favoriteRepo.stars, stats.favoriteRepo.commits, config) }] : []),
       { name: "ai-tools", html: generateAIToolsSlideHTML(stats.aiToolsUsed, config) },
       { name: "productivity", html: generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config) },
+      ...(stats.topCollaborators.length > 0 ? [{ name: "collaboration", html: generateCollaborationSlideHTML(stats.topCollaborators, config) }] : []),
       { name: "languages", html: generateLanguagesSlideHTML(stats.topLanguages, config) },
       { name: "summary", html: generateSummarySlideHTML(stats, nickname, username, selectedYear, config, userImage) },
     ];
@@ -355,16 +359,17 @@ export default function WrappedPage() {
   const displayUserImage = isGuestMode ? (guestUserImage || undefined) : session?.userImage;
 
   const slideConfigs: SlideConfig[] = [
-    { component: <IntroSlide key="intro" username={displayUsername} year={selectedYear} userImage={displayUserImage} />, name: "intro" },
+    { component: <IntroSlide key="intro" username={displayUsername} year={selectedYear} userImage={displayUserImage} userProfile={stats.userProfile} />, name: "intro" },
     { component: <StatsSlide key="stats" commits={stats.totalCommits} prs={stats.totalPRsMerged} issues={stats.totalIssuesResolved} />, name: "stats" },
     { component: <LinesOfCodeSlide key="loc" added={stats.linesOfCode.added} deleted={stats.linesOfCode.deleted} net={stats.linesOfCode.net} />, name: "lines-of-code" },
     { component: <NicknameSlide key="nickname" title={nickname.title} description={nickname.description} icon={nickname.icon} />, name: "nickname" },
     ...(stats.favoriteRepo ? [{ component: <FavoriteRepoSlide key="favorite" name={stats.favoriteRepo.name} stars={stats.favoriteRepo.stars} commits={stats.favoriteRepo.commits} />, name: "favorite-repo" }] : []),
     { component: <AIToolsSlide key="ai" tools={stats.aiToolsUsed} />, name: "ai-tools" },
     { component: <ProductivitySlide key="productivity" streak={stats.streak} mostProductiveDay={stats.mostProductiveDay} mostProductiveHour={stats.mostProductiveHour} />, name: "productivity" },
+    ...(stats.topCollaborators.length > 0 ? [{ component: <CollaborationSlide key="collaboration" topCollaborators={stats.topCollaborators} />, name: "collaboration" }] : []),
     { component: <LanguagesSlide key="languages" languages={stats.topLanguages} />, name: "languages" },
     { component: <BadgesSlide key="badges" badges={earnedBadges} />, name: "badges" },
-    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={displayUsername} year={selectedYear} userImage={displayUserImage} />, name: "summary" },
+    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={displayUsername} year={selectedYear} userImage={displayUserImage} userProfile={stats.userProfile} />, name: "summary" },
     { component: <OutroSlide key="outro" username={displayUsername} year={selectedYear} funFact={funFact} onDownloadAll={downloadAllSlides} isDownloading={isDownloadingAll} />, name: "outro" },
   ];
 
@@ -478,7 +483,7 @@ export default function WrappedPage() {
         </button>
       </div>
 
-      <div className="fixed top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-6 lg:right-8 z-30 flex items-center gap-1.5 sm:gap-2 md:gap-3">
+      <div className="fixed top-10 sm:top-12 md:top-14 right-2 sm:right-4 md:right-6 lg:right-8 z-30 flex items-center gap-1.5 sm:gap-2 md:gap-3">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -519,7 +524,7 @@ export default function WrappedPage() {
         username={displayUsername}
       />
 
-      <div className="fixed top-16 sm:top-20 md:top-24 left-2 sm:left-4 md:left-6 lg:left-8 z-30 flex flex-col gap-2 max-w-[calc(100vw-16rem)] sm:max-w-none">
+      <div className="fixed top-10 sm:top-12 md:top-14 left-2 sm:left-4 md:left-6 lg:left-8 z-30 flex flex-col gap-2 max-w-[calc(100vw-16rem)] sm:max-w-none">
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap">
           <div className="bg-white/10 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm font-mono shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
             {currentSlide + 1} / {slideConfigs.length}

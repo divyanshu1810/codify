@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { FaHeart } from "react-icons/fa";
 
 interface FooterProps {
   currentYear: number;
@@ -15,8 +16,8 @@ export function Footer({ currentYear }: FooterProps) {
       viewport={{ once: true }}
       className="text-center py-12 px-4 text-[#B3B3B3] text-sm space-y-2"
     >
-      <p>
-        Made with ❤️ by{" "}
+      <p className="flex items-center justify-center gap-1">
+        Made with <FaHeart className="text-red-500 inline" /> by{" "}
         <a
           href="https://github.com/divyanshu1810"
           target="_blank"

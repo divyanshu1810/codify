@@ -1,5 +1,25 @@
 import { Octokit } from "@octokit/rest";
 
+export interface GitHubUserProfile {
+  login: string;
+  id: number;
+  node_id: string;
+  avatar_url: string;
+  html_url: string;
+  name: string | null;
+  company: string | null;
+  blog: string | null;
+  location: string | null;
+  email: string | null;
+  bio: string | null;
+  twitter_username: string | null;
+  public_repos: number;
+  public_gists: number;
+  followers: number;
+  following: number;
+  created_at: string;
+}
+
 export interface GitHubStats {
   totalCommits: number;
   totalPRsMerged: number;
@@ -27,6 +47,13 @@ export interface GitHubStats {
   streak: number;
   mostProductiveDay: string;
   mostProductiveHour: number;
+  mostProductiveMonth: string;
+  topCollaborators: {
+    username: string;
+    avatar: string;
+    interactions: number;
+  }[];
+  userProfile: GitHubUserProfile;
 }
 
 export class GitHubService {
@@ -48,6 +75,53 @@ export class GitHubService {
     }
   }
 
+  async getUserProfile(): Promise<GitHubUserProfile> {
+    try {
+      const { data } = await this.octokit.users.getByUsername({ username: this.username });
+      return {
+        login: data.login,
+        id: data.id,
+        node_id: data.node_id,
+        avatar_url: data.avatar_url,
+        html_url: data.html_url,
+        name: data.name,
+        company: data.company,
+        blog: data.blog,
+        location: data.location,
+        email: data.email,
+        bio: data.bio,
+        twitter_username: data.twitter_username ?? null,
+        public_repos: data.public_repos,
+        public_gists: data.public_gists,
+        followers: data.followers,
+        following: data.following,
+        created_at: data.created_at,
+      };
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      // Return minimal profile data
+      return {
+        login: this.username,
+        id: 0,
+        node_id: "",
+        avatar_url: "",
+        html_url: `https://github.com/${this.username}`,
+        name: this.username,
+        company: null,
+        blog: null,
+        location: null,
+        email: null,
+        bio: null,
+        twitter_username: null,
+        public_repos: 0,
+        public_gists: 0,
+        followers: 0,
+        following: 0,
+        created_at: new Date().toISOString(),
+      };
+    }
+  }
+
   async getYearWrapped(year: number = new Date().getFullYear()): Promise<GitHubStats> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31, 23, 59, 59);
@@ -59,6 +133,7 @@ export class GitHubService {
       repos,
       reviews,
       followersData,
+      userProfile,
     ] = await Promise.all([
       this.getCommits(startDate, endDate),
       this.getPullRequests(startDate, endDate),
@@ -66,13 +141,15 @@ export class GitHubService {
       this.getRepositories(),
       this.getReviews(startDate, endDate),
       this.getFollowersGained(startDate, endDate),
+      this.getUserProfile(),
     ]);
 
     const linesOfCode = this.calculateLinesOfCode(commits.data);
     const aiToolsUsed = this.detectAITools(commits.data);
     const favoriteRepo = this.findFavoriteRepo(repos, commits.data);
     const topLanguages = await this.getTopLanguages(repos);
-    const { streak, mostProductiveDay, mostProductiveHour } = this.analyzeCommitPatterns(commits.data);
+    const { streak, mostProductiveDay, mostProductiveHour, mostProductiveMonth } = this.analyzeCommitPatterns(commits.data);
+    const topCollaborators = await this.getTopCollaborators(prs, issues);
 
     return {
       totalCommits: commits.count,
@@ -87,6 +164,9 @@ export class GitHubService {
       streak,
       mostProductiveDay,
       mostProductiveHour,
+      mostProductiveMonth,
+      topCollaborators,
+      userProfile,
     };
   }
 
@@ -279,14 +359,17 @@ export class GitHubService {
   private analyzeCommitPatterns(commits: any[]) {
     const commitsByDay = new Map<string, number>();
     const commitsByHour = new Map<number, number>();
+    const commitsByMonth = new Map<string, number>();
 
     commits.forEach((commit) => {
       const date = new Date(commit.commit?.committer?.date || commit.commit?.author?.date);
       const day = date.toLocaleDateString('en-US', { weekday: 'long' });
       const hour = date.getHours();
+      const month = date.toLocaleDateString('en-US', { month: 'long' });
 
       commitsByDay.set(day, (commitsByDay.get(day) || 0) + 1);
       commitsByHour.set(hour, (commitsByHour.get(hour) || 0) + 1);
+      commitsByMonth.set(month, (commitsByMonth.get(month) || 0) + 1);
     });
 
     const getMostFrequent = <T>(map: Map<T, number>, defaultValue: T): T => {
@@ -322,6 +405,70 @@ export class GitHubService {
       streak: calculateStreak(commits),
       mostProductiveDay: getMostFrequent(commitsByDay, "Monday"),
       mostProductiveHour: getMostFrequent(commitsByHour, 14),
+      mostProductiveMonth: getMostFrequent(commitsByMonth, "January"),
     };
+  }
+
+  private async getTopCollaborators(prs: any, issues: any) {
+    const collaborators = new Map<string, { avatar: string; count: number }>();
+
+    try {
+      // Get PRs the user has reviewed
+      const { data: reviewedPRs } = await this.octokit.search.issuesAndPullRequests({
+        q: `reviewed-by:${this.username} type:pr`,
+        per_page: 100,
+        sort: "updated",
+      });
+
+      // Count interactions from reviewed PRs
+      reviewedPRs.items.forEach((pr: any) => {
+        if (pr.user && pr.user.login !== this.username) {
+          const existing = collaborators.get(pr.user.login);
+          collaborators.set(pr.user.login, {
+            avatar: pr.user.avatar_url,
+            count: (existing?.count || 0) + 1,
+          });
+        }
+      });
+
+      // Get PRs on user's repos
+      const repos = await this.getRepositories();
+      for (const repo of repos.slice(0, 5)) {  // Limit to top 5 repos to avoid rate limits
+        try {
+          const { data: repoPRs } = await this.octokit.pulls.list({
+            owner: repo.owner.login,
+            repo: repo.name,
+            state: "all",
+            per_page: 50,
+          });
+
+          repoPRs.forEach((pr: any) => {
+            if (pr.user && pr.user.login !== this.username) {
+              const existing = collaborators.get(pr.user.login);
+              collaborators.set(pr.user.login, {
+                avatar: pr.user.avatar_url,
+                count: (existing?.count || 0) + 1,
+              });
+            }
+          });
+        } catch (error) {
+          // Skip repos that error out
+          continue;
+        }
+      }
+
+      // Sort and return top 5 collaborators
+      return Array.from(collaborators.entries())
+        .map(([username, data]) => ({
+          username,
+          avatar: data.avatar,
+          interactions: data.count,
+        }))
+        .sort((a, b) => b.interactions - a.interactions)
+        .slice(0, 5);
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      return [];
+    }
   }
 }

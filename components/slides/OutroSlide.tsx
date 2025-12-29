@@ -16,9 +16,9 @@ interface OutroSlideProps {
 export function OutroSlide({ username, year, funFact, onDownloadAll, isDownloading = false }: OutroSlideProps) {
   const [showFormatSelector, setShowFormatSelector] = useState(false);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
-  const shareText = `Check out my ${year} GitHub Unwrapped! 🎉\n\nDiscover your GitHub stats and coding journey with GitHub Unwrapped.`;
+  const shareText = `Check out my ${year} GitHub Unwrapped!\n\nDiscover your GitHub stats and coding journey with GitHub Unwrapped.`;
   const shareUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const linkedInText = `🎉 Check out my ${year} GitHub Unwrapped!\n\nI just discovered my coding journey and stats from ${year} with GitHub Unwrapped.\n\n✨ Find out your GitHub stats at: ${shareUrl}\n\n#GitHubUnwrapped #Coding #GitHub`;
+  const linkedInText = `Check out my ${year} GitHub Unwrapped!\n\nI just discovered my coding journey and stats from ${year} with GitHub Unwrapped.\n\nFind out your GitHub stats at: ${shareUrl}\n\n#GitHubUnwrapped #Coding #GitHub`;
 
   const handleDownloadWithFormat = async (format: "phone" | "tab" | "desktop") => {
     setShowFormatSelector(false);

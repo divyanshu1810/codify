@@ -99,6 +99,40 @@ const badges: Badge[] = [
     rarity: "epic",
   },
   {
+    id: "team-player",
+    name: "Team Player",
+    description: "Collaborated with 3+ developers",
+    icon: "FaUsers",
+    requirement: (stats) => stats.topCollaborators.length >= 3,
+    rarity: "common",
+  },
+  {
+    id: "collaboration-master",
+    name: "Collaboration Master",
+    description: "Collaborated with 5+ developers",
+    icon: "FaHandshake",
+    requirement: (stats) => stats.topCollaborators.length >= 5,
+    rarity: "rare",
+  },
+  {
+    id: "social-coder",
+    name: "Social Coder",
+    description: "Had 20+ interactions with collaborators",
+    icon: "FaUserFriends",
+    requirement: (stats) =>
+      stats.topCollaborators.reduce((sum, collab) => sum + collab.interactions, 0) >= 20,
+    rarity: "rare",
+  },
+  {
+    id: "community-leader",
+    name: "Community Leader",
+    description: "Had 50+ interactions with collaborators",
+    icon: "FaNetworkWired",
+    requirement: (stats) =>
+      stats.topCollaborators.reduce((sum, collab) => sum + collab.interactions, 0) >= 50,
+    rarity: "epic",
+  },
+  {
     id: "streak-master",
     name: "Streak Master",
     description: "Maintained a 30+ day commit streak",

@@ -1,6 +1,6 @@
 // Public GitHub API service for unauthenticated access
 import { Octokit } from "@octokit/rest";
-import { GitHubStats } from "./github";
+import { GitHubStats, GitHubUserProfile } from "./github";
 
 export class PublicGitHubService {
   private octokit: Octokit;
@@ -11,11 +11,52 @@ export class PublicGitHubService {
     this.octokit = new Octokit(); // No auth token - uses public API
   }
 
-  async getUserProfile() {
-    const { data } = await this.octokit.users.getByUsername({
-      username: this.username,
-    });
-    return data;
+  async getUserProfile(): Promise<GitHubUserProfile> {
+    try {
+      const { data } = await this.octokit.users.getByUsername({
+        username: this.username,
+      });
+      return {
+        login: data.login,
+        id: data.id,
+        node_id: data.node_id,
+        avatar_url: data.avatar_url,
+        html_url: data.html_url,
+        name: data.name,
+        company: data.company,
+        blog: data.blog,
+        location: data.location,
+        email: data.email,
+        bio: data.bio,
+        twitter_username: data.twitter_username ?? null,
+        public_repos: data.public_repos,
+        public_gists: data.public_gists,
+        followers: data.followers,
+        following: data.following,
+        created_at: data.created_at,
+      };
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return {
+        login: this.username,
+        id: 0,
+        node_id: "",
+        avatar_url: "",
+        html_url: `https://github.com/${this.username}`,
+        name: this.username,
+        company: null,
+        blog: null,
+        location: null,
+        email: null,
+        bio: null,
+        twitter_username: null,
+        public_repos: 0,
+        public_gists: 0,
+        followers: 0,
+        following: 0,
+        created_at: new Date().toISOString(),
+      };
+    }
   }
 
   async getYearWrapped(year: number = new Date().getFullYear()): Promise<GitHubStats> {
@@ -36,6 +77,7 @@ export class PublicGitHubService {
         const repos = await this.getPublicRepos();
         const topLanguages = this.calculateTopLanguages(repos);
 
+        const userProfile = await this.getUserProfile();
         return {
           totalCommits: 0,
           totalPRsMerged: 0,
@@ -49,6 +91,9 @@ export class PublicGitHubService {
           streak: 0,
           mostProductiveDay: "Monday",
           mostProductiveHour: 9,
+          mostProductiveMonth: "January",
+          topCollaborators: [],
+          userProfile,
         };
       }
 
@@ -74,7 +119,9 @@ export class PublicGitHubService {
       const linesOfCode = this.estimateLinesOfCode(commits);
       const productivity = this.analyzeProductivity(yearEvents.length > 0 ? yearEvents : events);
       const aiTools = this.detectAITools(yearEvents.length > 0 ? yearEvents : events);
+      const topCollaborators = this.getTopCollaborators(yearEvents.length > 0 ? yearEvents : events);
 
+      const userProfile = await this.getUserProfile();
       return {
         totalCommits: commits,
         totalPRsMerged: prs,
@@ -88,11 +135,15 @@ export class PublicGitHubService {
         streak: productivity.streak,
         mostProductiveDay: productivity.mostProductiveDay,
         mostProductiveHour: productivity.mostProductiveHour,
+        mostProductiveMonth: productivity.mostProductiveMonth,
+        topCollaborators,
+        userProfile,
       };
     } catch (error) {
       console.error("Error in getYearWrapped:", error);
 
       // Return minimal stats on error
+      const userProfile = await this.getUserProfile();
       return {
         totalCommits: 0,
         totalPRsMerged: 0,
@@ -106,6 +157,9 @@ export class PublicGitHubService {
         streak: 0,
         mostProductiveDay: "Monday",
         mostProductiveHour: 9,
+        mostProductiveMonth: "January",
+        topCollaborators: [],
+        userProfile,
       };
     }
   }
@@ -275,21 +329,26 @@ export class PublicGitHubService {
     streak: number;
     mostProductiveDay: string;
     mostProductiveHour: number;
+    mostProductiveMonth: string;
   } {
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const dayCounts: Record<string, number> = {};
     const hourCounts: Record<number, number> = {};
     const dateCounts: Record<string, number> = {};
+    const monthCounts: Record<string, number> = {};
 
     events.forEach((event) => {
       const date = new Date(event.created_at);
       const dayName = days[date.getDay()];
       const hour = date.getHours();
       const dateStr = date.toDateString();
+      const monthName = months[date.getMonth()];
 
       dayCounts[dayName] = (dayCounts[dayName] || 0) + 1;
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
       dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+      monthCounts[monthName] = (monthCounts[monthName] || 0) + 1;
     });
 
     // Find most productive day
@@ -299,6 +358,10 @@ export class PublicGitHubService {
     // Find most productive hour
     const mostProductiveHour =
       parseInt(Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "9");
+
+    // Find most productive month
+    const mostProductiveMonth =
+      Object.entries(monthCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "January";
 
     // Calculate streak (simplified - based on available events)
     const dates = Object.keys(dateCounts).map((d) => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
@@ -317,7 +380,63 @@ export class PublicGitHubService {
       streak: Math.max(streak, 1),
       mostProductiveDay,
       mostProductiveHour,
+      mostProductiveMonth,
     };
+  }
+
+  private getTopCollaborators(events: any[]): Array<{ username: string; avatar: string; interactions: number }> {
+    const collaborators = new Map<string, { avatar: string; count: number }>();
+
+    events.forEach((event) => {
+      // Track PR review events
+      if (event.type === "PullRequestReviewEvent" || event.type === "PullRequestReviewCommentEvent") {
+        const actor = event.actor?.login;
+        const avatar = event.actor?.avatar_url;
+        if (actor && actor !== this.username) {
+          const existing = collaborators.get(actor);
+          collaborators.set(actor, {
+            avatar: avatar || `https://github.com/${actor}.png`,
+            count: (existing?.count || 0) + 1,
+          });
+        }
+      }
+
+      // Track issue interactions
+      if (event.type === "IssuesEvent" || event.type === "IssueCommentEvent") {
+        const actor = event.actor?.login;
+        const avatar = event.actor?.avatar_url;
+        if (actor && actor !== this.username) {
+          const existing = collaborators.get(actor);
+          collaborators.set(actor, {
+            avatar: avatar || `https://github.com/${actor}.png`,
+            count: (existing?.count || 0) + 1,
+          });
+        }
+      }
+
+      // Track PR interactions
+      if (event.type === "PullRequestEvent") {
+        // Check PR author
+        const prAuthor = event.payload?.pull_request?.user?.login;
+        const prAuthorAvatar = event.payload?.pull_request?.user?.avatar_url;
+        if (prAuthor && prAuthor !== this.username) {
+          const existing = collaborators.get(prAuthor);
+          collaborators.set(prAuthor, {
+            avatar: prAuthorAvatar || `https://github.com/${prAuthor}.png`,
+            count: (existing?.count || 0) + 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(collaborators.entries())
+      .map(([username, data]) => ({
+        username,
+        avatar: data.avatar,
+        interactions: data.count,
+      }))
+      .sort((a, b) => b.interactions - a.interactions)
+      .slice(0, 5);
   }
 
   private detectAITools(events: any[]): Array<{ name: string; count: number }> {
