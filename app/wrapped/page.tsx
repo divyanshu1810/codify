@@ -19,6 +19,8 @@ import { OutroSlide } from "@/components/slides/OutroSlide";
 import { DownloadButton } from "@/components/DownloadButton";
 import { ShareDialog } from "@/components/ShareDialog";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { RateLimitError } from "@/components/RateLimitError";
+import { StoryProgressBar } from "@/components/StoryProgressBar";
 import { GitHubStats } from "@/lib/github";
 import { generateNickname, generateFunFact } from "@/lib/nicknames";
 import { getEarnedBadges } from "@/lib/badges";
@@ -70,6 +72,12 @@ export default function WrappedPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [accountCreationYear, setAccountCreationYear] = useState<number | null>(null);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [guestUsername, setGuestUsername] = useState<string | null>(null);
+  const [guestUserImage, setGuestUserImage] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const yearOptions = accountCreationYear
@@ -77,14 +85,29 @@ export default function WrappedPage() {
     : Array.from({ length: 6 }, (_, i) => currentYear - i);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/");
+    // Check if user is in guest mode
+    if (typeof window !== "undefined") {
+      const { isGuestMode, getGuestUsername, getGuestUserImage } = require("@/lib/guestMode");
+      const guestMode = isGuestMode();
+      const username = getGuestUsername();
+      const userImage = getGuestUserImage();
+
+      setIsGuestMode(guestMode);
+      setGuestUsername(username);
+      setGuestUserImage(userImage);
+
+      // If not authenticated and not in guest mode, redirect to home
+      if (status === "unauthenticated" && !guestMode) {
+        router.push("/");
+      }
+    }
   }, [status, router]);
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" || isGuestMode) {
       fetchWrappedData();
     }
-  }, [status, selectedYear]);
+  }, [status, selectedYear, isGuestMode]);
 
   useEffect(() => {
     if (status === "authenticated" && !accountCreationYear) {
@@ -105,7 +128,7 @@ export default function WrappedPage() {
   };
 
   const fetchWrappedData = async (forceRefresh = false) => {
-    const username = session?.username;
+    const username = isGuestMode ? guestUsername : session?.username;
     if (!username) return;
 
     try {
@@ -122,16 +145,46 @@ export default function WrappedPage() {
         }
       }
 
-      const response = await fetch(`/api/wrapped?year=${selectedYear}`);
-      if (!response.ok) throw new Error("Failed to fetch wrapped data");
+      // Guest mode: fetch from public API
+      if (isGuestMode) {
+        const { PublicGitHubService } = await import("@/lib/publicGitHub");
+        const service = new PublicGitHubService(username);
+        const data = await service.getYearWrapped(selectedYear);
 
-      const data = await response.json();
-      setStats(data);
-      setCachedStats(username, selectedYear, data);
-      setCacheAge(0);
-      setCurrentSlide(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+        // Check if we got valid data
+        if (!data || (data.totalCommits === 0 && data.topLanguages.length === 0)) {
+          throw new Error("Unable to fetch GitHub data. User may have no public activity or the API may be rate limited.");
+        }
+
+        setStats(data);
+        setCachedStats(username, selectedYear, data);
+        setCacheAge(0);
+        setCurrentSlide(0);
+      } else {
+        // Authenticated mode: fetch from API
+        const response = await fetch(`/api/wrapped?year=${selectedYear}`);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch wrapped data");
+        }
+
+        const data = await response.json();
+        setStats(data);
+        setCachedStats(username, selectedYear, data);
+        setCacheAge(0);
+        setCurrentSlide(0);
+      }
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+
+      // Check if it's a rate limit error
+      if (errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+        setIsRateLimited(true);
+        setError("GitHub API rate limit exceeded");
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -209,8 +262,8 @@ export default function WrappedPage() {
     if (!stats) return;
 
     const config = { format, ...DIMENSIONS[format] };
-    const username = session?.username || "Developer";
-    const userImage = session?.userImage;
+    const username = isGuestMode ? guestUsername || "Developer" : session?.username || "Developer";
+    const userImage = isGuestMode ? (guestUserImage || undefined) : session?.userImage;
     const nickname = generateNickname(stats);
     const slideName = slideConfigs[currentSlide].name;
 
@@ -223,8 +276,8 @@ export default function WrappedPage() {
 
     setIsDownloadingAll(true);
     const config = { format, ...DIMENSIONS[format] };
-    const username = session?.username || "Developer";
-    const userImage = session?.userImage;
+    const username = isGuestMode ? guestUsername || "Developer" : session?.username || "Developer";
+    const userImage = isGuestMode ? (guestUserImage || undefined) : session?.userImage;
     const nickname = generateNickname(stats);
 
     const slides = [
@@ -254,11 +307,35 @@ export default function WrappedPage() {
 
   if (status === "loading" || loading) return <LoadingSkeleton />;
 
+  // Show rate limit error UI
+  if (isRateLimited) {
+    return (
+      <RateLimitError
+        isGuestMode={isGuestMode}
+        onRetry={() => {
+          setIsRateLimited(false);
+          setError(null);
+          handleRefresh();
+        }}
+        onGoHome={() => {
+          if (isGuestMode) {
+            const { clearGuestMode } = require("@/lib/guestMode");
+            clearGuestMode();
+          }
+          router.push("/");
+        }}
+      />
+    );
+  }
+
   if (error || !stats) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center space-y-4 max-w-lg">
           <p className="text-red-500 text-xl font-mono">{error || "Failed to load wrapped data"}</p>
+          <p className="text-[#B3B3B3] text-sm">
+            {isGuestMode && "This might be due to rate limits or no public activity. Try signing in with GitHub for better access."}
+          </p>
           <button
             onClick={() => router.push("/")}
             className="bg-[#1DB954] text-black px-6 py-3 rounded-full font-bold hover:bg-[#1ed760] transition-colors"
@@ -274,8 +351,11 @@ export default function WrappedPage() {
   const funFact = generateFunFact(stats);
   const earnedBadges = getEarnedBadges(stats);
 
+  const displayUsername = isGuestMode ? guestUsername || "Developer" : session?.username || "Developer";
+  const displayUserImage = isGuestMode ? (guestUserImage || undefined) : session?.userImage;
+
   const slideConfigs: SlideConfig[] = [
-    { component: <IntroSlide key="intro" username={session?.username || "Developer"} year={selectedYear} userImage={session?.userImage} />, name: "intro" },
+    { component: <IntroSlide key="intro" username={displayUsername} year={selectedYear} userImage={displayUserImage} />, name: "intro" },
     { component: <StatsSlide key="stats" commits={stats.totalCommits} prs={stats.totalPRsMerged} issues={stats.totalIssuesResolved} />, name: "stats" },
     { component: <LinesOfCodeSlide key="loc" added={stats.linesOfCode.added} deleted={stats.linesOfCode.deleted} net={stats.linesOfCode.net} />, name: "lines-of-code" },
     { component: <NicknameSlide key="nickname" title={nickname.title} description={nickname.description} icon={nickname.icon} />, name: "nickname" },
@@ -284,35 +364,72 @@ export default function WrappedPage() {
     { component: <ProductivitySlide key="productivity" streak={stats.streak} mostProductiveDay={stats.mostProductiveDay} mostProductiveHour={stats.mostProductiveHour} />, name: "productivity" },
     { component: <LanguagesSlide key="languages" languages={stats.topLanguages} />, name: "languages" },
     { component: <BadgesSlide key="badges" badges={earnedBadges} />, name: "badges" },
-    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={session?.username || "Developer"} year={selectedYear} userImage={session?.userImage} />, name: "summary" },
-    { component: <OutroSlide key="outro" username={session?.username || "Developer"} year={selectedYear} funFact={funFact} onDownloadAll={downloadAllSlides} isDownloading={isDownloadingAll} />, name: "outro" },
+    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={displayUsername} year={selectedYear} userImage={displayUserImage} />, name: "summary" },
+    { component: <OutroSlide key="outro" username={displayUsername} year={selectedYear} funFact={funFact} onDownloadAll={downloadAllSlides} isDownloading={isDownloadingAll} />, name: "outro" },
   ];
 
   const nextSlide = () => {
-    if (currentSlide < slideConfigs.length - 1) setCurrentSlide(currentSlide + 1);
+    if (currentSlide < slideConfigs.length - 1) {
+      setCurrentSlide(currentSlide + 1);
+    } else {
+      setIsAutoPlaying(false); // Stop auto-play at the end
+    }
   };
 
   const prevSlide = () => {
-    if (currentSlide > 0) setCurrentSlide(currentSlide - 1);
+    if (currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
+      setIsAutoPlaying(true); // Resume auto-play when going back
+    }
+  };
+
+  const handleProgressComplete = () => {
+    if (isAutoPlaying && currentSlide < slideConfigs.length - 1) {
+      nextSlide();
+    }
   };
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden">
+    <div
+      className="relative min-h-screen bg-black overflow-hidden"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+    >
+      <StoryProgressBar
+        totalSlides={slideConfigs.length}
+        currentSlide={currentSlide}
+        duration={5000}
+        onComplete={handleProgressComplete}
+        isPaused={isPaused || !isAutoPlaying}
+      />
+
       <motion.div
         ref={slideRef}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.2}
-        onDragEnd={(e, { offset, velocity }) => {
+        onDragStart={() => {
+          setIsPaused(true);
+          setIsAutoPlaying(false);
+        }}
+        onDragEnd={(_, { offset, velocity }) => {
           const swipe = Math.abs(offset.x) * velocity.x;
           if (swipe > 10000) {
             offset.x < 0 ? nextSlide() : prevSlide();
           }
+          setIsPaused(false);
         }}
         className="cursor-grab active:cursor-grabbing"
-        onTouchStart={onTouchStart}
+        onTouchStart={(e) => {
+          setIsPaused(true);
+          onTouchStart(e);
+        }}
         onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+        onTouchEnd={() => {
+          onTouchEnd();
+          setIsPaused(false);
+        }}
       >
         <AnimatePresence mode="wait">
           {slideConfigs[currentSlide].component}
@@ -321,7 +438,11 @@ export default function WrappedPage() {
 
       <div className="fixed bottom-4 sm:bottom-6 md:bottom-8 left-0 right-0 flex justify-center items-center gap-2 sm:gap-3 md:gap-4 z-10 px-4">
         <button
-          onClick={prevSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+            setIsAutoPlaying(false);
+          }}
           disabled={currentSlide === 0}
           className="bg-white/10 hover:bg-white/20 text-white p-2 sm:p-3 md:p-4 rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm shadow-lg"
         >
@@ -332,7 +453,11 @@ export default function WrappedPage() {
           {slideConfigs.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentSlide(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentSlide(index);
+                setIsAutoPlaying(false);
+              }}
               className={`h-1.5 sm:h-2 rounded-full transition-all flex-shrink-0 ${
                 index === currentSlide ? "bg-[#1DB954] w-6 sm:w-8" : "bg-white/30 w-1.5 sm:w-2 hover:bg-white/50"
               }`}
@@ -341,7 +466,11 @@ export default function WrappedPage() {
         </div>
 
         <button
-          onClick={nextSlide}
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+            setIsAutoPlaying(false);
+          }}
           disabled={currentSlide === slideConfigs.length - 1}
           className="bg-white/10 hover:bg-white/20 text-white p-2 sm:p-3 md:p-4 rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm shadow-lg"
         >
@@ -349,9 +478,12 @@ export default function WrappedPage() {
         </button>
       </div>
 
-      <div className="fixed top-4 sm:top-6 md:top-8 right-2 sm:right-4 md:right-6 lg:right-8 z-10 flex items-center gap-1.5 sm:gap-2 md:gap-3">
+      <div className="fixed top-16 sm:top-20 md:top-24 right-2 sm:right-4 md:right-6 lg:right-8 z-30 flex items-center gap-1.5 sm:gap-2 md:gap-3">
         <button
-          onClick={() => setShowShareDialog(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowShareDialog(true);
+          }}
           className="bg-[#1DB954]/20 hover:bg-[#1DB954]/30 text-[#1DB954] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all backdrop-blur-sm shadow-lg border border-[#1DB954]/50"
           title="Share your wrapped"
           aria-label="Share your wrapped"
@@ -361,12 +493,21 @@ export default function WrappedPage() {
         </button>
         <DownloadButton slideRef={slideRef} slideName={slideConfigs[currentSlide].name} onDownload={downloadCurrentSlide} />
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isGuestMode) {
+              const { clearGuestMode } = require("@/lib/guestMode");
+              clearGuestMode();
+              router.push("/");
+            } else {
+              signOut({ callbackUrl: "/" });
+            }
+          }}
           className="bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all backdrop-blur-sm shadow-lg"
-          aria-label="Sign out"
+          aria-label={isGuestMode ? "Exit guest mode" : "Sign out"}
         >
           <FaSignOutAlt className="text-xs sm:text-sm md:text-base" />
-          <span className="font-semibold hidden md:inline text-sm">Sign Out</span>
+          <span className="font-semibold hidden md:inline text-sm">{isGuestMode ? "Exit" : "Sign Out"}</span>
         </button>
       </div>
 
@@ -375,10 +516,10 @@ export default function WrappedPage() {
         onClose={() => setShowShareDialog(false)}
         stats={{ commits: stats.totalCommits, prs: stats.totalPRsMerged, issues: stats.totalIssuesResolved }}
         year={selectedYear}
-        username={session?.username}
+        username={displayUsername}
       />
 
-      <div className="fixed top-4 sm:top-6 md:top-8 left-2 sm:left-4 md:left-6 lg:left-8 z-10 flex flex-col gap-2 max-w-[calc(100vw-8rem)] sm:max-w-none">
+      <div className="fixed top-16 sm:top-20 md:top-24 left-2 sm:left-4 md:left-6 lg:left-8 z-30 flex flex-col gap-2 max-w-[calc(100vw-16rem)] sm:max-w-none">
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap">
           <div className="bg-white/10 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm font-mono shadow-lg text-xs sm:text-sm md:text-base whitespace-nowrap">
             {currentSlide + 1} / {slideConfigs.length}
@@ -386,7 +527,10 @@ export default function WrappedPage() {
 
           <div className="relative" ref={yearDropdownRef}>
             <button
-              onClick={() => setShowYearDropdown(!showYearDropdown)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowYearDropdown(!showYearDropdown);
+              }}
               className="bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm font-mono shadow-lg text-xs sm:text-sm md:text-base transition-all flex items-center gap-1.5 sm:gap-2"
               aria-label="Select year"
             >
@@ -408,7 +552,8 @@ export default function WrappedPage() {
                     {yearOptions.map((year) => (
                       <button
                         key={year}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedYear(year);
                           setShowYearDropdown(false);
                         }}
@@ -426,7 +571,10 @@ export default function WrappedPage() {
           </div>
 
           <button
-            onClick={handleRefresh}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRefresh();
+            }}
             disabled={isRefreshing}
             className="bg-white/10 hover:bg-white/20 text-white px-2 sm:px-2.5 md:px-3.5 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
             title="Refresh data"

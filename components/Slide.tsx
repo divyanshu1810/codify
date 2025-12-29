@@ -20,7 +20,7 @@ export const Slide = forwardRef<HTMLDivElement, SlideProps>(
           duration: 0.6,
           ease: [0.16, 1, 0.3, 1],
         }}
-        className={`min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 ${className}`}
+        className={`min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-20 sm:pb-24 md:pb-28 lg:pb-32 ${className}`}
       >
         <div className="max-w-4xl w-full">
           {children}

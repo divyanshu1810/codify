@@ -1,9 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FaCode, FaGithub, FaRocket, FaStar, FaChartLine, FaFire } from "react-icons/fa";
+import { FaCode, FaGithub, FaRocket, FaStar, FaChartLine, FaFire, FaUser, FaInfoCircle } from "react-icons/fa";
 import { signIn } from "next-auth/react";
 import { TextGradient } from "../ui/text-gradient";
+import { Tooltip } from "../ui/Tooltip";
+import { useState } from "react";
+import { UsernameDialog } from "../UsernameDialog";
+import { useRouter } from "next/navigation";
+import { setGuestUser } from "@/lib/guestMode";
 
 interface HeroProps {
   currentYear: number;
@@ -11,6 +16,25 @@ interface HeroProps {
 }
 
 export function Hero({ currentYear, isLoading }: HeroProps) {
+  const [showUsernameDialog, setShowUsernameDialog] = useState(false);
+  const router = useRouter();
+
+  const handleGuestMode = async (username: string) => {
+    try {
+      // Fetch user avatar
+      const response = await fetch(`https://api.github.com/users/${username}`);
+      const data = await response.json();
+
+      // Store in localStorage
+      setGuestUser(username, data.avatar_url);
+
+      // Close dialog and navigate
+      setShowUsernameDialog(false);
+      router.push("/wrapped");
+    } catch (error) {
+      console.error("Error setting up guest mode:", error);
+    }
+  };
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 md:px-8">
       <motion.div
@@ -36,7 +60,7 @@ export function Hero({ currentYear, isLoading }: HeroProps) {
         </motion.div>
 
         <TextGradient className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight">
-          GitHub Wrapped
+          GitHub Unwrapped
         </TextGradient>
 
         <motion.p
@@ -61,7 +85,7 @@ export function Hero({ currentYear, isLoading }: HeroProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="pt-4"
+          className="pt-4 space-y-4"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -76,7 +100,62 @@ export function Hero({ currentYear, isLoading }: HeroProps) {
             </span>
             <FaRocket className="text-xl sm:text-2xl group-hover:translate-x-1 transition-transform" />
           </motion.button>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="flex items-center gap-3"
+          >
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#B3B3B3]/30 to-transparent" />
+            <span className="text-[#B3B3B3] text-sm">or</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-[#B3B3B3]/30 to-transparent" />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="flex items-center justify-center gap-2"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowUsernameDialog(true)}
+              disabled={isLoading}
+              className="group relative bg-white/10 hover:bg-white/20 border-2 border-[#1DB954]/50 hover:border-[#1DB954] text-white font-bold py-3 sm:py-4 px-6 sm:px-10 rounded-full text-base sm:text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 backdrop-blur-sm"
+            >
+              <FaUser className="text-xl sm:text-2xl" />
+              <span className="whitespace-nowrap">Try without signing in</span>
+            </motion.button>
+
+            <Tooltip
+              content={
+                <div className="space-y-2">
+                  <p className="font-semibold text-[#1DB954]">⚠️ Limited Access</p>
+                  <p>
+                    Guest mode uses GitHub's public API with strict rate limits (60 requests/hour).
+                    For the best experience with full stats and no limitations, we recommend signing in with GitHub.
+                  </p>
+                </div>
+              }
+              position="bottom"
+            >
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="text-[#B3B3B3] hover:text-[#1DB954] transition-colors cursor-help"
+              >
+                <FaInfoCircle className="text-xl sm:text-2xl" />
+              </motion.div>
+            </Tooltip>
+          </motion.div>
         </motion.div>
+
+        <UsernameDialog
+          isOpen={showUsernameDialog}
+          onClose={() => setShowUsernameDialog(false)}
+          onSubmit={handleGuestMode}
+        />
 
         <motion.div
           initial={{ opacity: 0 }}

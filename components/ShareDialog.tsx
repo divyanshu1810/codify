@@ -23,7 +23,7 @@ export function ShareDialog({ isOpen, onClose, stats, year, username }: ShareDia
 
   const shareText = stats && year
     ? `Check out my GitHub Year Wrapped ${year}! 🎉\n\n📊 ${stats.commits} commits\n🔀 ${stats.prs} PRs merged\n🐛 ${stats.issues} issues resolved\n\nCreate yours at ${appUrl}`
-    : `Check out GitHub Wrapped - Your GitHub Year Wrapped! Create your personalized coding stats at ${appUrl}`;
+    : `Check out GitHub Unwrapped - Your GitHub Year Unwrapped! Create your personalized coding stats at ${appUrl}`;
 
   const handleShare = (platform: string) => {
     const encodedText = encodeURIComponent(shareText);

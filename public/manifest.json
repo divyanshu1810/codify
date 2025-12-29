@@ -1,6 +1,6 @@
 {
-  "name": "GitHub Wrapped - Your GitHub Year in Review",
-  "short_name": "GitHub Wrapped",
+  "name": "GitHub Unwrapped - Your GitHub Year in Review",
+  "short_name": "GitHub Unwrapped",
   "description": "Discover your GitHub stats, achievements, and coding patterns from the past year with beautiful Spotify-style animations.",
   "start_url": "/",
   "display": "standalone",

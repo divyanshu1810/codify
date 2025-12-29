@@ -53,7 +53,7 @@ export function IntroSlide({ username, year, userImage }: IntroSlideProps) {
             {username}
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-black/90 font-semibold tracking-tight">
-            Your {year} GitHub Wrapped
+            Your {year} GitHub Unwrapped
           </p>
         </motion.div>
 

@@ -40,7 +40,7 @@ export function SummarySlide({ stats, nickname, username, year, userImage }: Sum
 
   return (
     <Slide className="bg-gradient-to-br from-[#121212] via-black to-[#1a1a1a]">
-      <div className="space-y-4 sm:space-y-6 py-8 sm:py-12 md:py-16">
+      <div className="space-y-4 sm:space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -61,7 +61,7 @@ export function SummarySlide({ stats, nickname, username, year, userImage }: Sum
             )}
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            {username}'s {year} Wrapped
+            {username}'s {year} Unwrapped
           </h2>
           <p className="text-[#B3B3B3] text-sm sm:text-base md:text-lg font-medium">Complete Summary</p>
         </motion.div>
@@ -254,7 +254,7 @@ export function SummarySlide({ stats, nickname, username, year, userImage }: Sum
           transition={{ duration: 0.6, delay: 0.7 }}
           className="text-center text-[#B3B3B3] text-xs sm:text-sm font-mono pt-3 sm:pt-4 px-4"
         >
-          Powered by GitHub Wrapped
+          Powered by GitHub Unwrapped
         </motion.div>
       </div>
     </Slide>

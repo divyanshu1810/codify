@@ -100,7 +100,7 @@ export function generateIntroSlideHTML(
         text-align: center;
       ">${username}</h1>
       <p style="font-size: ${styles.subtitleSize}; color: rgba(0, 0, 0, 0.9); margin: ${styles.spacing} 0; text-align: center; font-weight: 600;">
-        Your ${year} GitHub Wrapped
+        Your ${year} GitHub Unwrapped
       </p>
       <p style="font-size: ${styles.fontSize}; color: rgba(0, 0, 0, 0.8); margin-top: ${styles.spacing}; text-align: center; font-weight: 500;">
         Let's see what you've built this year

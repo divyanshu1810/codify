@@ -1,4 +1,4 @@
-# GitHub Wrapped - Your GitHub Year in Review
+# GitHub Unwrapped - Your GitHub Year in Review
 
 A beautiful, Spotify-inspired web application that showcases your GitHub activity and achievements throughout the year. Built with Next.js, TypeScript, Tailwind CSS, and Framer Motion.
 
@@ -30,6 +30,7 @@ A beautiful, Spotify-inspired web application that showcases your GitHub activit
 ## Prerequisites
 
 Before you begin, ensure you have:
+
 - Node.js 18+ installed
 - A GitHub account
 - A GitHub OAuth App (instructions below)
@@ -39,7 +40,6 @@ Before you begin, ensure you have:
 ### 1. Clone and Install
 
 ```bash
-cd codify
 npm install
 ```
 
@@ -48,7 +48,7 @@ npm install
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click "New OAuth App"
 3. Fill in the details:
-   - **Application name**: GitHub Wrapped (or your preferred name)
+   - **Application name**: GitHub Unwrapped (or your preferred name)
    - **Homepage URL**: `http://localhost:3000`
    - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
 4. Click "Register application"
@@ -75,6 +75,7 @@ NEXTAUTH_SECRET=your_nextauth_secret_here
 ```
 
 To generate a NEXTAUTH_SECRET, run:
+
 ```bash
 openssl rand -base64 32
 ```
@@ -115,6 +116,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Nicknames
 
 The app assigns you a nickname based on your activity:
+
 - **Night Owl**: Code mostly at night
 - **Early Bird**: Active in early morning
 - **Code Machine**: 500+ commits
@@ -142,7 +144,7 @@ The app defaults to the current year. To change it, modify the year parameter in
 Edit the color variables in `app/globals.css`:
 
 ```css
---spotify-green: #1DB954;
+--spotify-green: #1db954;
 --spotify-dark: #121212;
 --spotify-darker: #000000;
 ```
@@ -158,32 +160,37 @@ The app is currently deployed at: [https://git-unwrapped.vercel.app](https://git
 1. **Push your code to GitHub**
 
 2. **Create a new GitHub OAuth App for production**:
+
    - Go to [GitHub Developer Settings](https://github.com/settings/developers)
    - Click "New OAuth App"
    - Fill in the details:
-     - **Application name**: GitHub Wrapped (Production)
+     - **Application name**: GitHub Unwrapped (Production)
      - **Homepage URL**: `https://git-unwrapped.vercel.app`
      - **Authorization callback URL**: `https://git-unwrapped.vercel.app/api/auth/callback/github`
    - Save the Client ID and Client Secret
 
 3. **Import to Vercel**:
+
    - Go to [Vercel](https://vercel.com)
    - Import your GitHub repository
    - Configure project settings (Framework Preset: Next.js)
 
 4. **Add Environment Variables in Vercel**:
    Go to Project Settings → Environment Variables and add:
+
    ```
    GITHUB_ID=your_production_github_client_id
    GITHUB_SECRET=your_production_github_client_secret
    NEXTAUTH_URL=https://git-unwrapped.vercel.app
    NEXTAUTH_SECRET=your_generated_secret
    ```
+
    Generate NEXTAUTH_SECRET with: `openssl rand -base64 32`
 
 5. **Deploy**: Click "Deploy" and wait for the build to complete
 
 #### Important Notes:
+
 - Keep separate OAuth Apps for development and production
 - Never commit `.env.local` to version control
 - Make sure to update the OG image URL in production if needed

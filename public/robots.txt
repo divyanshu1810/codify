@@ -1,4 +1,4 @@
-# robots.txt for GitHub Wrapped
+# robots.txt for GitHub Unwrapped
 
 User-agent: *
 Allow: /

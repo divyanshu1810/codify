@@ -16,9 +16,9 @@ interface OutroSlideProps {
 export function OutroSlide({ username, year, funFact, onDownloadAll, isDownloading = false }: OutroSlideProps) {
   const [showFormatSelector, setShowFormatSelector] = useState(false);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
-  const shareText = `Check out my ${year} GitHub Wrapped! 🎉\n\nDiscover your GitHub stats and coding journey with GitHub Wrapped.`;
+  const shareText = `Check out my ${year} GitHub Unwrapped! 🎉\n\nDiscover your GitHub stats and coding journey with GitHub Unwrapped.`;
   const shareUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const linkedInText = `🎉 Check out my ${year} GitHub Wrapped!\n\nI just discovered my coding journey and stats from ${year} with GitHub Wrapped.\n\n✨ Find out your GitHub stats at: ${shareUrl}\n\n#GitHubWrapped #Coding #GitHub`;
+  const linkedInText = `🎉 Check out my ${year} GitHub Unwrapped!\n\nI just discovered my coding journey and stats from ${year} with GitHub Unwrapped.\n\n✨ Find out your GitHub stats at: ${shareUrl}\n\n#GitHubUnwrapped #Coding #GitHub`;
 
   const handleDownloadWithFormat = async (format: "phone" | "tab" | "desktop") => {
     setShowFormatSelector(false);
@@ -212,7 +212,7 @@ export function OutroSlide({ username, year, funFact, onDownloadAll, isDownloadi
           transition={{ duration: 0.6, delay: 0.8 }}
           className="text-black/70 text-xs sm:text-sm font-mono px-4"
         >
-          Made with GitHub Wrapped
+          Made with GitHub Unwrapped
         </motion.div>
       </div>
     </Slide>
