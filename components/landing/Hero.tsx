@@ -36,7 +36,7 @@ export function Hero({ currentYear, isLoading }: HeroProps) {
         </motion.div>
 
         <TextGradient className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight">
-          Codify Wrapped
+          GitHub Wrapped
         </TextGradient>
 
         <motion.p

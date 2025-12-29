@@ -11,10 +11,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://codify-wrapped.vercel.app"),
+  metadataBase: new URL("https://git-unwrapped.vercel.app"),
   title: {
-    default: "Codify Wrapped - Your GitHub Year in Review",
-    template: "%s | Codify Wrapped",
+    default: "GitHub Wrapped - Your GitHub Year in Review",
+    template: "%s | GitHub Wrapped",
   },
   description: "Discover your GitHub stats, achievements, and coding patterns from the past year with beautiful Spotify-style animations. Track commits, PRs, issues, streaks, and earn developer nicknames.",
   keywords: [
@@ -25,13 +25,12 @@ export const metadata: Metadata = {
     "Coding Stats",
     "GitHub Insights",
     "Developer Achievements",
-    "Codify Wrapped",
     "Spotify Wrapped for GitHub",
     "GitHub Activity",
   ],
-  authors: [{ name: "Codify Wrapped" }],
-  creator: "Codify Wrapped",
-  publisher: "Codify Wrapped",
+  authors: [{ name: "GitHub Wrapped" }],
+  creator: "GitHub Wrapped",
+  publisher: "GitHub Wrapped",
   robots: {
     index: true,
     follow: true,
@@ -46,26 +45,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://codify-wrapped.vercel.app",
-    siteName: "Codify Wrapped",
-    title: "Codify Wrapped - Your GitHub Year in Review",
+    url: "https://git-unwrapped.vercel.app",
+    siteName: "GitHub Wrapped",
+    title: "GitHub Wrapped - Your GitHub Year in Review",
     description: "Discover your GitHub stats, achievements, and coding patterns from the past year with beautiful Spotify-style animations. Track commits, PRs, issues, streaks, and earn developer nicknames.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Codify Wrapped - Your GitHub Year in Review",
+        alt: "GitHub Wrapped - Your GitHub Year in Review",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Codify Wrapped - Your GitHub Year in Review",
+    title: "GitHub Wrapped - Your GitHub Year in Review",
     description: "Discover your GitHub stats, achievements, and coding patterns from the past year with beautiful Spotify-style animations. Track commits, PRs, issues, streaks, and earn developer nicknames.",
     images: ["/og-image.png"],
-    creator: "@codifywrapped",
-    site: "@codifywrapped",
+    creator: "@githubwrapped",
+    site: "@githubwrapped",
   },
   icons: {
     icon: [
@@ -76,7 +75,7 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   alternates: {
-    canonical: "https://codify-wrapped.vercel.app",
+    canonical: "https://git-unwrapped.vercel.app",
   },
   category: "technology",
 };

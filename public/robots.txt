@@ -1,7 +1,7 @@
-# robots.txt for Codify Wrapped
+# robots.txt for GitHub Wrapped
 
 User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://codify-wrapped.vercel.app/sitemap.xml
+Sitemap: https://git-unwrapped.vercel.app/sitemap.xml

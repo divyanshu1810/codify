@@ -1,6 +1,6 @@
 {
-  "name": "Codify Wrapped - Your GitHub Year in Review",
-  "short_name": "Codify Wrapped",
+  "name": "GitHub Wrapped - Your GitHub Year in Review",
+  "short_name": "GitHub Wrapped",
   "description": "Discover your GitHub stats, achievements, and coding patterns from the past year with beautiful Spotify-style animations.",
   "start_url": "/",
   "display": "standalone",

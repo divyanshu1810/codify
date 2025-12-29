@@ -28,7 +28,7 @@ export function Footer({ currentYear }: FooterProps) {
       </p>
       <p>Built with Next.js, TypeScript, and Framer Motion</p>
       <p className="mt-2">
-        © {currentYear} Codify Wrapped. All rights reserved.
+        © {currentYear} GitHub Wrapped. All rights reserved.
       </p>
     </motion.div>
   );

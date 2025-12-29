@@ -215,7 +215,7 @@ export default function WrappedPage() {
     const slideName = slideConfigs[currentSlide].name;
 
     const html = generateSlideHTML(slideName, config, username, nickname, userImage);
-    if (html) await convertHTMLToImage(html, `codify-wrapped-${slideName}-${format}.png`);
+    if (html) await convertHTMLToImage(html, `github-wrapped-${slideName}-${format}.png`);
   };
 
   const downloadAllSlides = async (format: DownloadFormat) => {
@@ -241,7 +241,7 @@ export default function WrappedPage() {
 
     try {
       for (const slide of slides) {
-        await convertHTMLToImage(slide.html, `codify-wrapped-${slide.name}-${format}.png`);
+        await convertHTMLToImage(slide.html, `github-wrapped-${slide.name}-${format}.png`);
         await new Promise(resolve => setTimeout(resolve, DOWNLOAD_DELAY));
       }
     } catch (error) {

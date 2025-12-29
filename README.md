@@ -1,4 +1,4 @@
-# Codify - Your GitHub Year Wrapped
+# GitHub Wrapped - Your GitHub Year in Review
 
 A beautiful, Spotify-inspired web application that showcases your GitHub activity and achievements throughout the year. Built with Next.js, TypeScript, Tailwind CSS, and Framer Motion.
 
@@ -48,7 +48,7 @@ npm install
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click "New OAuth App"
 3. Fill in the details:
-   - **Application name**: Codify (or your preferred name)
+   - **Application name**: GitHub Wrapped (or your preferred name)
    - **Homepage URL**: `http://localhost:3000`
    - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
 4. Click "Register application"
@@ -151,7 +151,7 @@ Edit the color variables in `app/globals.css`:
 
 ### Deploy to Vercel
 
-The app is currently deployed at: [https://codify-wrapped.vercel.app](https://codify-wrapped.vercel.app)
+The app is currently deployed at: [https://git-unwrapped.vercel.app](https://git-unwrapped.vercel.app)
 
 #### Steps to Deploy:
 
@@ -161,9 +161,9 @@ The app is currently deployed at: [https://codify-wrapped.vercel.app](https://co
    - Go to [GitHub Developer Settings](https://github.com/settings/developers)
    - Click "New OAuth App"
    - Fill in the details:
-     - **Application name**: Codify Wrapped (Production)
-     - **Homepage URL**: `https://codify-wrapped.vercel.app`
-     - **Authorization callback URL**: `https://codify-wrapped.vercel.app/api/auth/callback/github`
+     - **Application name**: GitHub Wrapped (Production)
+     - **Homepage URL**: `https://git-unwrapped.vercel.app`
+     - **Authorization callback URL**: `https://git-unwrapped.vercel.app/api/auth/callback/github`
    - Save the Client ID and Client Secret
 
 3. **Import to Vercel**:
@@ -176,7 +176,7 @@ The app is currently deployed at: [https://codify-wrapped.vercel.app](https://co
    ```
    GITHUB_ID=your_production_github_client_id
    GITHUB_SECRET=your_production_github_client_secret
-   NEXTAUTH_URL=https://codify-wrapped.vercel.app
+   NEXTAUTH_URL=https://git-unwrapped.vercel.app
    NEXTAUTH_SECRET=your_generated_secret
    ```
    Generate NEXTAUTH_SECRET with: `openssl rand -base64 32`

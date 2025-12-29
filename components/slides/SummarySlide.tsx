@@ -254,7 +254,7 @@ export function SummarySlide({ stats, nickname, username, year, userImage }: Sum
           transition={{ duration: 0.6, delay: 0.7 }}
           className="text-center text-[#B3B3B3] text-xs sm:text-sm font-mono pt-3 sm:pt-4 px-4"
         >
-          Powered by Codify Wrapped
+          Powered by GitHub Wrapped
         </motion.div>
       </div>
     </Slide>

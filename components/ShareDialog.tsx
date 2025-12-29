@@ -19,11 +19,11 @@ interface ShareDialogProps {
 export function ShareDialog({ isOpen, onClose, stats, year, username }: ShareDialogProps) {
   const [copied, setCopied] = useState(false);
 
-  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://codify-wrapped.vercel.app";
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://git-unwrapped.vercel.app";
 
   const shareText = stats && year
     ? `Check out my GitHub Year Wrapped ${year}! 🎉\n\n📊 ${stats.commits} commits\n🔀 ${stats.prs} PRs merged\n🐛 ${stats.issues} issues resolved\n\nCreate yours at ${appUrl}`
-    : `Check out Codify - Your GitHub Year Wrapped! Create your personalized coding stats at ${appUrl}`;
+    : `Check out GitHub Wrapped - Your GitHub Year Wrapped! Create your personalized coding stats at ${appUrl}`;
 
   const handleShare = (platform: string) => {
     const encodedText = encodeURIComponent(shareText);

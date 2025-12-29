@@ -1,6 +1,6 @@
 import { GitHubStats } from "./github";
 
-const CACHE_PREFIX = "codify_stats_";
+const CACHE_PREFIX = "github_stats_";
 const CACHE_DURATION = 1000 * 60 * 60;
 
 interface CachedData {
