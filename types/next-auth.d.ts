@@ -4,6 +4,7 @@ declare module "next-auth" {
   interface Session {
     accessToken?: string;
     username?: string;
+    userImage?: string;
   }
 }
 
@@ -11,5 +12,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     accessToken?: string;
     username?: string;
+    image?: string;
   }
 }

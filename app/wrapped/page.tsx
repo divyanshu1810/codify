@@ -187,11 +187,11 @@ export default function WrappedPage() {
     else if (isRightSwipe) prevSlide();
   };
 
-  const generateSlideHTML = (slideName: string, config: any, username: string, nickname: any) => {
+  const generateSlideHTML = (slideName: string, config: any, username: string, nickname: any, userImage?: string) => {
     if (!stats) return "";
 
     const generators: Record<string, () => string> = {
-      intro: () => generateIntroSlideHTML(username, selectedYear, config),
+      intro: () => generateIntroSlideHTML(username, selectedYear, config, userImage),
       stats: () => generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config),
       "lines-of-code": () => generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config),
       nickname: () => generateNicknameSlideHTML(nickname.title, nickname.description, config),
@@ -199,7 +199,7 @@ export default function WrappedPage() {
       "ai-tools": () => generateAIToolsSlideHTML(stats.aiToolsUsed, config),
       productivity: () => generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config),
       languages: () => generateLanguagesSlideHTML(stats.topLanguages, config),
-      summary: () => generateSummarySlideHTML(stats, nickname, username, selectedYear, config),
+      summary: () => generateSummarySlideHTML(stats, nickname, username, selectedYear, config, userImage),
     };
 
     return generators[slideName]?.() || "";
@@ -210,10 +210,11 @@ export default function WrappedPage() {
 
     const config = { format, ...DIMENSIONS[format] };
     const username = session?.username || "Developer";
+    const userImage = session?.userImage;
     const nickname = generateNickname(stats);
     const slideName = slideConfigs[currentSlide].name;
 
-    const html = generateSlideHTML(slideName, config, username, nickname);
+    const html = generateSlideHTML(slideName, config, username, nickname, userImage);
     if (html) await convertHTMLToImage(html, `codify-wrapped-${slideName}-${format}.png`);
   };
 
@@ -223,10 +224,11 @@ export default function WrappedPage() {
     setIsDownloadingAll(true);
     const config = { format, ...DIMENSIONS[format] };
     const username = session?.username || "Developer";
+    const userImage = session?.userImage;
     const nickname = generateNickname(stats);
 
     const slides = [
-      { name: "intro", html: generateIntroSlideHTML(username, selectedYear, config) },
+      { name: "intro", html: generateIntroSlideHTML(username, selectedYear, config, userImage) },
       { name: "stats", html: generateStatsSlideHTML(stats.totalCommits, stats.totalPRsMerged, stats.totalIssuesResolved, config) },
       { name: "lines-of-code", html: generateLinesOfCodeSlideHTML(stats.linesOfCode.added, stats.linesOfCode.deleted, stats.linesOfCode.net, config) },
       { name: "nickname", html: generateNicknameSlideHTML(nickname.title, nickname.description, config) },
@@ -234,7 +236,7 @@ export default function WrappedPage() {
       { name: "ai-tools", html: generateAIToolsSlideHTML(stats.aiToolsUsed, config) },
       { name: "productivity", html: generateProductivitySlideHTML(stats.streak, stats.mostProductiveDay, stats.mostProductiveHour, config) },
       { name: "languages", html: generateLanguagesSlideHTML(stats.topLanguages, config) },
-      { name: "summary", html: generateSummarySlideHTML(stats, nickname, username, selectedYear, config) },
+      { name: "summary", html: generateSummarySlideHTML(stats, nickname, username, selectedYear, config, userImage) },
     ];
 
     try {
@@ -273,7 +275,7 @@ export default function WrappedPage() {
   const earnedBadges = getEarnedBadges(stats);
 
   const slideConfigs: SlideConfig[] = [
-    { component: <IntroSlide key="intro" username={session?.username || "Developer"} year={selectedYear} />, name: "intro" },
+    { component: <IntroSlide key="intro" username={session?.username || "Developer"} year={selectedYear} userImage={session?.userImage} />, name: "intro" },
     { component: <StatsSlide key="stats" commits={stats.totalCommits} prs={stats.totalPRsMerged} issues={stats.totalIssuesResolved} />, name: "stats" },
     { component: <LinesOfCodeSlide key="loc" added={stats.linesOfCode.added} deleted={stats.linesOfCode.deleted} net={stats.linesOfCode.net} />, name: "lines-of-code" },
     { component: <NicknameSlide key="nickname" title={nickname.title} description={nickname.description} icon={nickname.icon} />, name: "nickname" },
@@ -282,7 +284,7 @@ export default function WrappedPage() {
     { component: <ProductivitySlide key="productivity" streak={stats.streak} mostProductiveDay={stats.mostProductiveDay} mostProductiveHour={stats.mostProductiveHour} />, name: "productivity" },
     { component: <LanguagesSlide key="languages" languages={stats.topLanguages} />, name: "languages" },
     { component: <BadgesSlide key="badges" badges={earnedBadges} />, name: "badges" },
-    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={session?.username || "Developer"} year={selectedYear} />, name: "summary" },
+    { component: <SummarySlide key="summary" stats={stats} nickname={nickname} username={session?.username || "Developer"} year={selectedYear} userImage={session?.userImage} />, name: "summary" },
     { component: <OutroSlide key="outro" username={session?.username || "Developer"} year={selectedYear} funFact={funFact} onDownloadAll={downloadAllSlides} isDownloading={isDownloadingAll} />, name: "outro" },
   ];
 

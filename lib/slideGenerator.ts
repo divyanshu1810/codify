@@ -39,15 +39,18 @@ const getResponsiveStyles = (format: "phone" | "tab" | "desktop") => {
 export function generateIntroSlideHTML(
   username: string,
   year: number,
-  config: SlideGeneratorConfig
+  config: SlideGeneratorConfig,
+  userImage?: string
 ): string {
   const styles = getResponsiveStyles(config.format);
+
+  const avatarSize = config.format === 'phone' ? '120px' : config.format === 'tab' ? '160px' : '192px';
 
   return `
     <div style="
       width: ${config.width}px;
       height: ${config.height}px;
-      background: linear-gradient(135deg, #000000 0%, #121212 100%);
+      background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -56,18 +59,51 @@ export function generateIntroSlideHTML(
       color: white;
       padding: ${styles.padding};
     ">
-      <div style="font-size: ${styles.iconSize}; margin-bottom: ${styles.spacing};">💻</div>
+      ${userImage ? `
+        <div style="margin-bottom: ${styles.spacing};">
+          <img
+            src="${userImage}"
+            alt="${username}"
+            style="
+              width: ${avatarSize};
+              height: ${avatarSize};
+              border-radius: 50%;
+              border: 4px solid #000000;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+              object-fit: cover;
+            "
+          />
+        </div>
+      ` : `
+        <div style="
+          width: ${avatarSize};
+          height: ${avatarSize};
+          border-radius: 50%;
+          border: 4px solid #000000;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          background: rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: ${styles.spacing};
+        ">
+          <svg width="${parseInt(avatarSize) * 0.5}" height="${parseInt(avatarSize) * 0.5}" viewBox="0 0 24 24" fill="#000000">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+      `}
       <h1 style="
         font-size: ${styles.titleSize};
         font-weight: 800;
-        background: linear-gradient(to right, #1DB954, #1ed760);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #000000;
         margin: ${styles.spacing} 0;
         text-align: center;
-      ">Codify Wrapped</h1>
-      <p style="font-size: ${styles.subtitleSize}; color: #B3B3B3; margin: ${styles.spacing} 0; text-align: center;">
-        ${username}'s ${year} in Code
+      ">${username}</h1>
+      <p style="font-size: ${styles.subtitleSize}; color: rgba(0, 0, 0, 0.9); margin: ${styles.spacing} 0; text-align: center; font-weight: 600;">
+        Your ${year} GitHub Wrapped
+      </p>
+      <p style="font-size: ${styles.fontSize}; color: rgba(0, 0, 0, 0.8); margin-top: ${styles.spacing}; text-align: center; font-weight: 500;">
+        Let's see what you've built this year
       </p>
     </div>
   `;
@@ -305,9 +341,12 @@ export function generateSummarySlideHTML(
   nickname: { title: string; description: string },
   username: string,
   year: number,
-  config: SlideGeneratorConfig
+  config: SlideGeneratorConfig,
+  userImage?: string
 ): string {
   const styles = getResponsiveStyles(config.format);
+
+  const avatarSize = config.format === 'phone' ? '80px' : config.format === 'tab' ? '96px' : '120px';
 
   return `
     <div style="
@@ -323,6 +362,38 @@ export function generateSummarySlideHTML(
       padding: ${styles.padding};
       overflow-y: auto;
     ">
+      <div style="display: flex; justify-content: center; margin-bottom: ${styles.spacing};">
+        ${userImage ? `
+          <img
+            src="${userImage}"
+            alt="${username}"
+            style="
+              width: ${avatarSize};
+              height: ${avatarSize};
+              border-radius: 50%;
+              border: 4px solid #1DB954;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+              object-fit: cover;
+            "
+          />
+        ` : `
+          <div style="
+            width: ${avatarSize};
+            height: ${avatarSize};
+            border-radius: 50%;
+            border: 4px solid #1DB954;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <svg width="${parseInt(avatarSize) * 0.5}" height="${parseInt(avatarSize) * 0.5}" viewBox="0 0 24 24" fill="#1DB954">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+        `}
+      </div>
       <h1 style="font-size: ${styles.titleSize}; font-weight: 800; color: #1DB954; margin-bottom: ${styles.spacing}; text-align: center;">
         ${username}'s ${year} Summary
       </h1>

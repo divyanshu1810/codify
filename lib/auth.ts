@@ -18,12 +18,14 @@ export const authOptions: NextAuthOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.username = (profile as any)?.login;
+        token.image = (profile as any)?.avatar_url;
       }
       return token;
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
       session.username = token.username as string;
+      session.userImage = token.image as string;
       return session;
     },
   },

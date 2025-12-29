@@ -11,7 +11,8 @@ import {
   FaClock,
   FaRobot,
   FaStar,
-  FaEye
+  FaEye,
+  FaUser
 } from "react-icons/fa";
 import { Slide } from "../Slide";
 import { GitHubStats } from "@/lib/github";
@@ -24,9 +25,10 @@ interface SummarySlideProps {
   nickname: Nickname;
   username: string;
   year: number;
+  userImage?: string;
 }
 
-export function SummarySlide({ stats, nickname, username, year }: SummarySlideProps) {
+export function SummarySlide({ stats, nickname, username, year, userImage }: SummarySlideProps) {
   const NicknameIcon = (Icons as any)[nickname.icon] as IconType || Icons.FaStar;
 
   const formatHour = (hour: number) => {
@@ -43,8 +45,21 @@ export function SummarySlide({ stats, nickname, username, year }: SummarySlidePr
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center space-y-1 sm:space-y-2 px-4"
+          className="text-center space-y-3 sm:space-y-4 px-4"
         >
+          <div className="flex justify-center mb-2 sm:mb-3">
+            {userImage ? (
+              <img
+                src={userImage}
+                alt={username}
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-[#1DB954] shadow-2xl object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-[#1DB954] shadow-2xl bg-[#1a1a1a] flex items-center justify-center">
+                <FaUser className="text-[#1DB954] text-2xl sm:text-3xl md:text-4xl" />
+              </div>
+            )}
+          </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
             {username}'s {year} Wrapped
           </h2>

@@ -1,15 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FaCode } from "react-icons/fa";
+import { FaCode, FaUser } from "react-icons/fa";
 import { Slide } from "../Slide";
 
 interface IntroSlideProps {
   username: string;
   year: number;
+  userImage?: string;
 }
 
-export function IntroSlide({ username, year }: IntroSlideProps) {
+export function IntroSlide({ username, year, userImage }: IntroSlideProps) {
   return (
     <Slide className="bg-gradient-to-br from-[#1DB954] to-[#1ed760]">
       <div className="text-center space-y-6 sm:space-y-8">
@@ -23,8 +24,19 @@ export function IntroSlide({ username, year }: IntroSlideProps) {
             stiffness: 200,
             damping: 15,
           }}
+          className="flex justify-center"
         >
-          <FaCode className="text-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl mx-auto drop-shadow-2xl" />
+          {userImage ? (
+            <img
+              src={userImage}
+              alt={username}
+              className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full border-4 border-black shadow-2xl object-cover"
+            />
+          ) : (
+            <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 rounded-full border-4 border-black shadow-2xl bg-black/20 flex items-center justify-center">
+              <FaUser className="text-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl" />
+            </div>
+          )}
         </motion.div>
 
         <motion.div
