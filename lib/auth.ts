@@ -27,26 +27,33 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "github" && profile && user?.id) {
-        try {
-          // Update user with GitHub username and check if admin
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              username: (profile as any).login,
-              isAdmin: user.email === process.env.ADMIN_EMAIL,
-            },
-          });
-        } catch (error) {
-          console.error("Error updating user:", error);
-        }
-      }
+      // Allow sign in - user creation/update happens in the adapter
       return true;
     },
     async session({ session, user }) {
       if (session.user && user) {
+        // Update user data if needed (username and admin status)
+        const needsUpdate =
+          !(user as any).username ||
+          (user.email === process.env.ADMIN_EMAIL && !(user as any).isAdmin);
+
+        if (needsUpdate) {
+          try {
+            const updated = await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                username: (user as any).username || user.name || user.email?.split('@')[0],
+                isAdmin: user.email === process.env.ADMIN_EMAIL,
+              },
+            });
+            user = updated;
+          } catch (error) {
+            console.error("Error updating user:", error);
+          }
+        }
+
         session.userId = user.id;
-        session.username = (user as any).username;
+        session.username = (user as any).username || user.name || user.email?.split('@')[0];
         session.userImage = session.user.image as string;
         session.isAdmin = (user as any).isAdmin || false;
 
