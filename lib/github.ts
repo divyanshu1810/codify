@@ -178,9 +178,10 @@ export class GitHubService {
     let allCommits: any[] = [];
     let page = 1;
     const perPage = 100;
+    const MAX_SEARCH_RESULTS = 1000; // GitHub Search API limit
 
     try {
-      while (true) {
+      while (allCommits.length < MAX_SEARCH_RESULTS) {
         const { data } = await this.octokit.search.commits({
           q: `author:${this.username} committer-date:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
           sort: "committer-date",
@@ -191,13 +192,32 @@ export class GitHubService {
 
         if (data.items.length === 0) break;
         allCommits = allCommits.concat(data.items);
+
+        // Stop if we got fewer results than requested (last page)
         if (data.items.length < perPage) break;
+
+        // Stop if we're approaching the limit
+        if (allCommits.length >= MAX_SEARCH_RESULTS) {
+          allCommits = allCommits.slice(0, MAX_SEARCH_RESULTS);
+          break;
+        }
+
         page++;
       }
 
       return { count: allCommits.length, data: allCommits };
-    } catch (error) {
+    } catch (error: any) {
+      // Handle the specific "Only the first 1000 search results are available" error
+      if (error?.status === 422 && error?.message?.includes("1000 search results")) {
+        console.warn(`Commit search limited to ${allCommits.length} results due to GitHub API constraints`);
+        return { count: allCommits.length, data: allCommits };
+      }
+
       console.error("Error fetching commits:", error);
+      // Return partial data if we have any
+      if (allCommits.length > 0) {
+        return { count: allCommits.length, data: allCommits };
+      }
       return { count: 0, data: [] };
     }
   }
