@@ -128,7 +128,7 @@ export class PublicGitHubService {
         totalIssuesResolved: issues,
         linesOfCode,
         reviewedLinesOfCode: Math.floor(commits * 150), // Estimate
-        followersGained: profile.followers || 0, // Total followers (historical data not available via public API)
+        totalFollowers: profile.followers || 0, // Total followers (historical data not available via public API)
         favoriteRepo,
         topLanguages,
         aiToolsUsed: aiTools,
@@ -150,7 +150,7 @@ export class PublicGitHubService {
         totalIssuesResolved: 0,
         linesOfCode: { added: 0, deleted: 0, net: 0 },
         reviewedLinesOfCode: 0,
-        followersGained: 0,
+        totalFollowers: 0,
         favoriteRepo: null,
         topLanguages: [],
         aiToolsUsed: [],
