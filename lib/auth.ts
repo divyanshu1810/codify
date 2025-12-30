@@ -26,38 +26,37 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Allow sign in - user creation/update happens in the adapter
+    async signIn() {
       return true;
     },
     async session({ session, user }) {
       if (session.user && user) {
-        // Update user data if needed (username and admin status)
-        const needsUpdate =
-          !(user as any).username ||
-          (user.email === process.env.ADMIN_EMAIL && !(user as any).isAdmin);
+        let username = (user as any).username;
+        let isAdmin = (user as any).isAdmin || false;
+
+        const needsUpdate = !username || (user.email === process.env.ADMIN_EMAIL && !isAdmin);
 
         if (needsUpdate) {
           try {
             const updated = await prisma.user.update({
               where: { id: user.id },
               data: {
-                username: (user as any).username || user.name || user.email?.split('@')[0],
+                username: username || user.name || user.email?.split('@')[0] || 'user',
                 isAdmin: user.email === process.env.ADMIN_EMAIL,
               },
             });
-            user = updated;
+            username = updated.username;
+            isAdmin = updated.isAdmin;
           } catch (error) {
             console.error("Error updating user:", error);
           }
         }
 
         session.userId = user.id;
-        session.username = (user as any).username || user.name || user.email?.split('@')[0];
+        session.username = username || user.name || user.email?.split('@')[0] || 'user';
         session.userImage = session.user.image as string;
-        session.isAdmin = (user as any).isAdmin || false;
+        session.isAdmin = isAdmin;
 
-        // Get access token from accounts table
         const account = await prisma.account.findFirst({
           where: { userId: user.id, provider: "github" },
           select: { access_token: true },

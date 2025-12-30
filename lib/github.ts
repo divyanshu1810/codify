@@ -99,7 +99,6 @@ export class GitHubService {
       };
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      // Return minimal profile data
       return {
         login: this.username,
         id: 0,
@@ -178,7 +177,7 @@ export class GitHubService {
     let allCommits: any[] = [];
     let page = 1;
     const perPage = 100;
-    const MAX_SEARCH_RESULTS = 1000; // GitHub Search API limit
+    const MAX_SEARCH_RESULTS = 1000;
 
     try {
       while (allCommits.length < MAX_SEARCH_RESULTS) {
@@ -193,10 +192,8 @@ export class GitHubService {
         if (data.items.length === 0) break;
         allCommits = allCommits.concat(data.items);
 
-        // Stop if we got fewer results than requested (last page)
         if (data.items.length < perPage) break;
 
-        // Stop if we're approaching the limit
         if (allCommits.length >= MAX_SEARCH_RESULTS) {
           allCommits = allCommits.slice(0, MAX_SEARCH_RESULTS);
           break;
@@ -207,14 +204,12 @@ export class GitHubService {
 
       return { count: allCommits.length, data: allCommits };
     } catch (error: any) {
-      // Handle the specific "Only the first 1000 search results are available" error
       if (error?.status === 422 && error?.message?.includes("1000 search results")) {
         console.warn(`Commit search limited to ${allCommits.length} results due to GitHub API constraints`);
         return { count: allCommits.length, data: allCommits };
       }
 
       console.error("Error fetching commits:", error);
-      // Return partial data if we have any
       if (allCommits.length > 0) {
         return { count: allCommits.length, data: allCommits };
       }
@@ -320,7 +315,7 @@ export class GitHubService {
       const message = commit.commit?.message?.toLowerCase() || "";
 
       aiPatterns.forEach(({ name, patterns }) => {
-        if (patterns.some(pattern => message.includes(pattern))) {
+        if (patterns.some((pattern) => message.includes(pattern))) {
           aiTools.set(name, (aiTools.get(name) || 0) + 1);
         }
       });
@@ -344,10 +339,11 @@ export class GitHubService {
 
     if (repoCommits.size === 0) return null;
 
-    const [favoriteRepoName, commitCount] = Array.from(repoCommits.entries())
-      .sort((a, b) => b[1] - a[1])[0];
+    const [favoriteRepoName, commitCount] = Array.from(repoCommits.entries()).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
 
-    const repo = repos.find(r => r.full_name === favoriteRepoName);
+    const repo = repos.find((r) => r.full_name === favoriteRepoName);
 
     return {
       name: favoriteRepoName,
@@ -398,7 +394,7 @@ export class GitHubService {
 
     const calculateStreak = (commits: any[]): number => {
       const commitDates = commits
-        .map(c => new Date(c.commit?.committer?.date || c.commit?.author?.date).toDateString())
+        .map((c) => new Date(c.commit?.committer?.date || c.commit?.author?.date).toDateString())
         .filter((v, i, a) => a.indexOf(v) === i)
         .sort();
 
@@ -407,7 +403,8 @@ export class GitHubService {
 
       for (let i = 1; i < commitDates.length; i++) {
         const daysDiff = Math.ceil(
-          (new Date(commitDates[i]).getTime() - new Date(commitDates[i - 1]).getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(commitDates[i]).getTime() - new Date(commitDates[i - 1]).getTime()) /
+            (1000 * 60 * 60 * 24)
         );
 
         if (daysDiff === 1) {
@@ -440,7 +437,6 @@ export class GitHubService {
         sort: "updated",
       });
 
-      // Count interactions from reviewed PRs
       reviewedPRs.items.forEach((pr: any) => {
         if (pr.user && pr.user.login !== this.username) {
           const existing = collaborators.get(pr.user.login);
@@ -451,9 +447,8 @@ export class GitHubService {
         }
       });
 
-      // Get PRs on user's repos
       const repos = await this.getRepositories();
-      for (const repo of repos.slice(0, 5)) {  // Limit to top 5 repos to avoid rate limits
+      for (const repo of repos.slice(0, 5)) {
         try {
           const { data: repoPRs } = await this.octokit.pulls.list({
             owner: repo.owner.login,
@@ -472,12 +467,10 @@ export class GitHubService {
             }
           });
         } catch (error) {
-          // Skip repos that error out
           continue;
         }
       }
 
-      // Sort and return top 5 collaborators
       return Array.from(collaborators.entries())
         .map(([username, data]) => ({
           username,
