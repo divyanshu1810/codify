@@ -19,9 +19,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
 
-    // Validate year
     const currentYear = new Date().getFullYear();
-    if (year < 2008 || year > currentYear) {
+    if (year < 2008 || year > currentYear + 1) {
       return NextResponse.json(
         { error: `Invalid year. Must be between 2008 and ${currentYear}` },
         { status: 400 }

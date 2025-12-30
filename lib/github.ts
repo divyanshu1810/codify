@@ -30,7 +30,7 @@ export interface GitHubStats {
     net: number;
   };
   reviewedLinesOfCode: number;
-  followersGained: number;
+  totalFollowers: number;
   favoriteRepo: {
     name: string;
     stars: number;
@@ -139,16 +139,16 @@ export class GitHubService {
       this.getIssues(startDate, endDate),
       this.getRepositories(),
       this.getReviews(startDate, endDate),
-      this.getFollowersGained(startDate, endDate),
+      this.getTotalFollowers(),
       this.getUserProfile(),
     ]);
 
-    const linesOfCode = this.calculateLinesOfCode(commits.data);
+    const linesOfCode = await this.calculateLinesOfCode(commits.data);
     const aiToolsUsed = this.detectAITools(commits.data);
     const favoriteRepo = this.findFavoriteRepo(repos, commits.data);
     const topLanguages = await this.getTopLanguages(repos);
     const { streak, mostProductiveDay, mostProductiveHour, mostProductiveMonth } = this.analyzeCommitPatterns(commits.data);
-    const topCollaborators = await this.getTopCollaborators(prs, issues);
+    const topCollaborators = await this.getTopCollaborators();
 
     return {
       totalCommits: commits.count,
@@ -156,7 +156,7 @@ export class GitHubService {
       totalIssuesResolved: issues.closed,
       linesOfCode,
       reviewedLinesOfCode: reviews.linesReviewed,
-      followersGained: followersData,
+      totalFollowers: followersData,
       favoriteRepo,
       aiToolsUsed,
       topLanguages,
@@ -180,6 +180,8 @@ export class GitHubService {
     const MAX_SEARCH_RESULTS = 1000;
 
     try {
+      console.log(`Fetching commits for ${this.username} from ${this.formatDate(startDate)} to ${this.formatDate(endDate)}`);
+
       while (allCommits.length < MAX_SEARCH_RESULTS) {
         const { data } = await this.octokit.search.commits({
           q: `author:${this.username} committer-date:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
@@ -187,7 +189,12 @@ export class GitHubService {
           order: "desc",
           per_page: perPage,
           page,
+          mediaType: {
+            previews: ['cloak'],
+          },
         });
+
+        console.log(`Page ${page}: Found ${data.items.length} commits`);
 
         if (data.items.length === 0) break;
         allCommits = allCommits.concat(data.items);
@@ -202,6 +209,7 @@ export class GitHubService {
         page++;
       }
 
+      console.log(`Total commits found: ${allCommits.length}`);
       return { count: allCommits.length, data: allCommits };
     } catch (error: any) {
       if (error?.status === 422 && error?.message?.includes("1000 search results")) {
@@ -209,7 +217,7 @@ export class GitHubService {
         return { count: allCommits.length, data: allCommits };
       }
 
-      console.error("Error fetching commits:", error);
+      console.error("Error fetching commits:", error?.message || error);
       if (allCommits.length > 0) {
         return { count: allCommits.length, data: allCommits };
       }
@@ -261,43 +269,106 @@ export class GitHubService {
   }
 
   private async getReviews(startDate: Date, endDate: Date) {
-    const ESTIMATED_LINES_PER_REVIEW = 200;
-
     try {
       const { data } = await this.octokit.search.issuesAndPullRequests({
         q: `reviewed-by:${this.username} type:pr reviewed:${this.formatDate(startDate)}..${this.formatDate(endDate)}`,
         per_page: 100,
       });
 
-      return { linesReviewed: data.total_count * ESTIMATED_LINES_PER_REVIEW };
+      let totalLinesReviewed = 0;
+
+      for (const pr of data.items.slice(0, 50)) {
+        try {
+          const [owner, repo] = pr.repository_url.split("/").slice(-2);
+          const { data: prData } = await this.octokit.pulls.get({
+            owner,
+            repo,
+            pull_number: pr.number,
+          });
+
+          totalLinesReviewed += (prData.additions || 0) + (prData.deletions || 0);
+        } catch (error) {
+          continue;
+        }
+      }
+
+      return { linesReviewed: totalLinesReviewed };
     } catch (error) {
       console.error("Error fetching reviews:", error);
       return { linesReviewed: 0 };
     }
   }
 
-  private async getFollowersGained(startDate: Date, endDate: Date) {
+  private async getTotalFollowers() {
     try {
-      const { data: currentFollowers } = await this.octokit.users.listFollowersForUser({
+      const { data: user } = await this.octokit.users.getByUsername({
         username: this.username,
-        per_page: 100,
       });
 
-      return currentFollowers.length;
+      return user.followers;
     } catch (error) {
       console.error("Error fetching followers:", error);
       return 0;
     }
   }
 
-  private calculateLinesOfCode(commits: any[]) {
-    const ESTIMATED_LINES_ADDED_PER_COMMIT = 50;
-    const ESTIMATED_LINES_DELETED_PER_COMMIT = 20;
+  private async calculateLinesOfCode(commits: any[]) {
+    let totalAdded = 0;
+    let totalDeleted = 0;
+    let processedCount = 0;
+    let failedCount = 0;
 
-    const added = commits.length * ESTIMATED_LINES_ADDED_PER_COMMIT;
-    const deleted = commits.length * ESTIMATED_LINES_DELETED_PER_COMMIT;
+    if (commits.length === 0) {
+      console.log("No commits to process for lines of code calculation");
+      return { added: 0, deleted: 0, net: 0 };
+    }
 
-    return { added, deleted, net: added - deleted };
+    const commitShas = commits.map((c) => ({
+      sha: c.sha,
+      repo: c.repository?.full_name,
+    }));
+
+    console.log(`Processing ${Math.min(commitShas.length, 200)} commits for line count...`);
+
+    const batchSize = 10;
+    const maxCommits = Math.min(commitShas.length, 200);
+
+    for (let i = 0; i < maxCommits; i += batchSize) {
+      const batch = commitShas.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map(async ({ sha, repo }) => {
+          if (!repo) return;
+
+          try {
+            const [owner, repoName] = repo.split("/");
+            const { data } = await this.octokit.repos.getCommit({
+              owner,
+              repo: repoName,
+              ref: sha,
+            });
+
+            if (data.stats) {
+              totalAdded += data.stats.additions || 0;
+              totalDeleted += data.stats.deletions || 0;
+              processedCount++;
+            }
+          } catch (error: any) {
+            failedCount++;
+          }
+        })
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    console.log(`Lines of code: ${totalAdded} added, ${totalDeleted} deleted (processed ${processedCount} commits, ${failedCount} failed)`);
+
+    return {
+      added: totalAdded,
+      deleted: totalDeleted,
+      net: totalAdded - totalDeleted,
+    };
   }
 
   private detectAITools(commits: any[]) {
@@ -355,18 +426,31 @@ export class GitHubService {
   private async getTopLanguages(repos: any[]) {
     const languages = new Map<string, number>();
 
-    repos.forEach((repo) => {
-      if (repo.language) {
-        languages.set(repo.language, (languages.get(repo.language) || 0) + 1);
+    for (const repo of repos.slice(0, 50)) {
+      try {
+        const { data } = await this.octokit.repos.listLanguages({
+          owner: repo.owner.login,
+          repo: repo.name,
+        });
+
+        Object.entries(data).forEach(([lang, bytes]) => {
+          languages.set(lang, (languages.get(lang) || 0) + (bytes as number));
+        });
+      } catch (error) {
+        if (repo.language) {
+          languages.set(repo.language, (languages.get(repo.language) || 0) + 1000);
+        }
       }
-    });
+    }
 
     const total = Array.from(languages.values()).reduce((a, b) => a + b, 0);
 
+    if (total === 0) return [];
+
     return Array.from(languages.entries())
-      .map(([name, count]) => ({
+      .map(([name, bytes]) => ({
         name,
-        percentage: Math.round((count / total) * 100),
+        percentage: Math.round((bytes / total) * 100),
       }))
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 5);
@@ -426,7 +510,7 @@ export class GitHubService {
     };
   }
 
-  private async getTopCollaborators(prs: any, issues: any) {
+  private async getTopCollaborators() {
     const collaborators = new Map<string, { avatar: string; count: number }>();
 
     try {

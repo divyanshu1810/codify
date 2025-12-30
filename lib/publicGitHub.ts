@@ -84,7 +84,7 @@ export class PublicGitHubService {
           totalIssuesResolved: 0,
           linesOfCode: { added: 0, deleted: 0, net: 0 },
           reviewedLinesOfCode: 0,
-          followersGained: profile.followers || 0,
+          totalFollowers: profile.followers || 0,
           favoriteRepo: null,
           topLanguages,
           aiToolsUsed: [],
